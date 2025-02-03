@@ -6,6 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from openai import OpenAI
 import json
 import os
+import requests
+import urllib
 from datetime import datetime
 import hashlib
 from dotenv import load_dotenv
@@ -22,20 +24,14 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_TYPE='filesystem'
 )
-CORS(app, origins=["http://localhost:3000"])
+CORS(app, origins=["http://localhost:3000"],
+     supports_credentials=True)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # SQLite configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///github_analyzer.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
-# GitHub OAuth setup
-github_bp = make_github_blueprint(
-    client_id=os.getenv('GITHUB_CLIENT_ID'),
-    client_secret=os.getenv('GITHUB_CLIENT_SECRET')
-)
-app.register_blueprint(github_bp, url_prefix='/login')
 
 # OpenAI setup
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -84,14 +80,28 @@ def analyze_code_with_ai(repo_info, files_content):
     return response.choices[0].message.content
 
 def get_repository_files(owner, repo):
+    token = session.get('github_token')
+    if not token:
+        raise Exception('Not authenticated')
+        
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    
     files_content = []
     try:
-        contents = github.get(f'/repos/{owner}/{repo}/contents').json()
+        response = requests.get(
+            f'https://api.github.com/repos/{owner}/{repo}/contents',
+            headers=headers
+        )
+        contents = response.json()
         
         for item in contents[:5]:
             if item['type'] == 'file':
                 if item['size'] <= 1000000:
-                    file_content = github.get(item['url']).json()
+                    file_response = requests.get(item['url'], headers=headers)
+                    file_content = file_response.json()
                     content = base64.b64decode(file_content['content']).decode('utf-8', errors='ignore')
                     files_content.append({
                         'path': item['path'],
@@ -103,14 +113,25 @@ def get_repository_files(owner, repo):
     return files_content
 
 def analyze_repository(repo_url):
+    token = session.get('github_token')
+    if not token:
+        raise Exception('Not authenticated')
+        
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    
     parts = repo_url.rstrip('/').split('/')
     owner = parts[-2]
     repo = parts[-1]
     
-    repo_info = github.get(f'/repos/{owner}/{repo}').json()
-    languages = github.get(f'/repos/{owner}/{repo}/languages').json()
-    commits = github.get(f'/repos/{owner}/{repo}/commits', params={'per_page': 30}).json()
-    contributors = github.get(f'/repos/{owner}/{repo}/contributors', params={'per_page': 10}).json()
+    base_url = f'https://api.github.com/repos/{owner}/{repo}'
+    
+    repo_info = requests.get(base_url, headers=headers).json()
+    languages = requests.get(f'{base_url}/languages', headers=headers).json()
+    commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
+    contributors = requests.get(f'{base_url}/contributors', params={'per_page': 10}, headers=headers).json()
     
     files_content = get_repository_files(owner, repo)
     files_summary = "\n".join([f"File: {f['path']}\n{f['content'][:500]}...\n" for f in files_content])
@@ -155,14 +176,6 @@ def index():
     if not github.authorized:
         return redirect(url_for('github.login'))
     return redirect('http://localhost:3000')  # Redirect to React app after auth
-
-
-@app.route('/api/auth/user')
-def get_user():
-    if 'github_token' not in session:
-        return jsonify({'error': 'Not authorized'}), 401
-    resp = github.get('/user')
-    return jsonify(resp.json())
 
 
 @app.route('/api/analyze', methods=['POST'])
@@ -235,6 +248,73 @@ def authorized():
         return redirect('http://localhost:3000')
     return redirect('http://localhost:3000')
 
+
+# Add these routes to your Flask app
+@app.route('/login/github')
+def github_login():
+    # Generate the GitHub authorization URL
+    params = {
+        'client_id': os.getenv('GITHUB_CLIENT_ID'),
+        'redirect_uri': 'http://localhost:5000/callback',  # Backend callback URL
+        'scope': 'repo user'
+    }
+    auth_url = f'https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}'
+    return redirect(auth_url)
+
+@app.route('/callback')
+def github_callback():
+    # Get the code from GitHub
+    code = request.args.get('code')
+    if not code:
+        return redirect('http://localhost:3000?error=access_denied')
+
+    try:
+        # Exchange code for token using your worker
+        response = requests.post(
+            'https://github-auth-worker.avgtraderandyyy.workers.dev',
+            json={'code': code},
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        data = response.json()
+        if 'access_token' not in data:
+            return redirect('http://localhost:3000?error=token_error')
+
+        # Store the token in session
+        session['github_token'] = data['access_token']
+        
+        # Redirect back to React frontend
+        return redirect('http://localhost:3000')
+        
+    except Exception as e:
+        print(f"Error in callback: {str(e)}")
+        return redirect('http://localhost:3000?error=server_error')
+
+@app.route('/api/auth/user')
+def get_user():
+    token = session.get('github_token')
+    if not token:
+        return jsonify({'error': 'Not authorized'}), 401
+        
+    try:
+        response = requests.get(
+            'https://api.github.com/user',
+            headers={
+                'Authorization': f'token {token}',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        )
+        return jsonify(response.json())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Optional: Add logout endpoint
+@app.route('/api/auth/logout')
+def logout():
+    session.pop('github_token', None)
+    # Clear the entire session if you want to be thorough
+    session.clear()
+    return jsonify({'message': 'Logged out successfully'})
 
 if __name__ == '__main__':
     with app.app_context():
