@@ -20,10 +20,10 @@ Smart Recommendations: Generates tailored suggestions for improvement
 Historical Analysis: Tracks repository changes and maintenance patterns
 Caching System: Stores analysis results for quick future reference
 
-🔬 Analysis Components
+# 🔬 Analysis Components
 Repository Scoring
 The analyzer evaluates repositories across five key dimensions:
-ComponentWeightDescriptionDocumentation1.0Quality and completeness of README and documentationStructure1.0Project organization, dependencies, and testing setupCommunity1.0Stars, forks, and community engagementMaintenance1.0Update frequency and maintenance patternsIssues1.0Issue management and resolution
+ComponentWeightDescriptionDocumentation=1.0 stars, Quality and completeness of README and documentationStructure=1.0 stars, Project organization, dependencies, and testing setupCommunity=1.0 stars, forks, and community engagementMaintenance=1.0 stars, Update frequency and maintenance patternsIssues=1.0 stars, and Issue management and resolution
 
 # Score Interpretation
 
