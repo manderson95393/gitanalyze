@@ -27,8 +27,8 @@ ComponentWeightDescriptionDocumentation1.0Quality and completeness of README and
 
 # Score Interpretation
 
-4.0 - 5.0: Excellent - Well-maintained, documented, and community-supported
-2.5 - 3.9: Average - Functional but has room for improvement
+4.0 - 5.0: Excellent - Well-maintained, documented, and community-supported\n
+2.5 - 3.9: Average - Functional but has room for improvement\n
 0.0 - 2.4: Needs Work - Requires significant improvements
 
 🛠 Technical Architecture
