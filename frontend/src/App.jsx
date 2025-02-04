@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GithubIcon, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
-
+import ScoreBadge from './ScoreBadge';
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -9,24 +9,6 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-const ScoreBadge = ({ score }) => {
-  const scoreConfig = {
-    'Good': { color: 'bg-green-100 text-green-800', icon: Check },
-    'Average': { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-    'Bad': { color: 'bg-red-100 text-red-800', icon: X }
-  };
-
-  const config = scoreConfig[score] || scoreConfig['Average'];
-  const Icon = config.icon;
-
-  return (
-    <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${config.color}`}>
-      <Icon className="w-4 h-4" />
-      <span className="font-medium">{score}</span>
-    </div>
-  );
 };
 
 const AIAnalysis = ({ aiAnalysis }) => {
@@ -128,6 +110,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Add this
         body: JSON.stringify({ repo_url: repoUrl }),
       });
       
