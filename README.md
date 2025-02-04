@@ -31,7 +31,7 @@ ComponentWeightDescriptionDocumentation1.0Quality and completeness of README and
 2.5 - 3.9: Average - Functional but has room for improvement  
 0.0 - 2.4: Needs Work - Requires significant improvements
 
-🛠 Technical Architecture
+# 🛠 Technical Architecture
 Backend:   Flask - SQLite - GitHub API - OpenAI API
 Frontend:  React.js - Tailwind CSS 
 
