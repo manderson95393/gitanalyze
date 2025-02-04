@@ -2,7 +2,7 @@
 
 An elegant tool for analyzing GitHub repositories to assess their quality, maintainability, and community health.
 
-📋 Overview
+# 📋 Overview
 The GitHub Repository Analyzer is a powerful tool designed to help developers and teams evaluate GitHub repositories through comprehensive analysis. It provides insights into code quality, maintenance patterns, community engagement, and overall project health.
 ✨ Key Features
 
