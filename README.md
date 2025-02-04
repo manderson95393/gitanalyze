@@ -28,45 +28,6 @@ Node.js 14+
 GitHub Account
 GitHub OAuth App credentials
 
-Installation
-
-Clone the repository
-bashCopygit clone https://github.com/yourusername/github-repo-analyzer.git
-cd github-repo-analyzer
-
-Set up the backend
-bashCopy# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your GitHub OAuth credentials and Flask secret key
-
-Set up the frontend
-bashCopycd frontend
-npm install
-
-
-Configuration
-Create a .env file in the root directory:
-envCopyFLASK_SECRET_KEY=your_secret_key
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-Running the Application
-
-Start the backend server
-bashCopypython app.py
-
-Start the frontend development server
-bashCopycd frontend
-npm start
-
-Access the application at http://localhost:3000
-
 🔬 Analysis Components
 Repository Scoring
 The analyzer evaluates repositories across five key dimensions:
@@ -91,21 +52,6 @@ React.js
 Tailwind CSS for styling
 Real-time data visualization
 Responsive design
-
-📈 Future Enhancements
-
- Code quality metrics analysis
- Security vulnerability scanning
- Contributor behavior analysis
- Custom scoring weights
- Batch repository analysis
- Trend analysis over time
-
-🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-🙏 Acknowledgments
 
 GitHub API for providing repository data
 Open source community for inspiration
