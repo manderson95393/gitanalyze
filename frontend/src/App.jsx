@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GithubIcon, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
-
+import ScoreBadge from './ScoreBadge';
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -9,24 +9,6 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-const ScoreBadge = ({ score }) => {
-  const scoreConfig = {
-    'Good': { color: 'bg-green-100 text-green-800', icon: Check },
-    'Average': { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-    'Bad': { color: 'bg-red-100 text-red-800', icon: X }
-  };
-
-  const config = scoreConfig[score] || scoreConfig['Average'];
-  const Icon = config.icon;
-
-  return (
-    <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${config.color}`}>
-      <Icon className="w-4 h-4" />
-      <span className="font-medium">{score}</span>
-    </div>
-  );
 };
 
 const AIAnalysis = ({ aiAnalysis }) => {
@@ -88,15 +70,31 @@ export default function App() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/auth/user')
+    // Check for error params in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+      setError(error);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  
+    // Fetch user data
+    fetch('http://localhost:5000/api/auth/user', {
+      credentials: 'include'  // Important for sending cookies
+    })
       .then(res => res.json())
       .then(data => {
         if (!data.error) {
           setUser(data);
         }
-      });
-
-    fetch('http://localhost:5000/api/stats')
+      })
+      .catch(err => console.error('Error fetching user:', err));
+  
+    // Fetch stats
+    fetch('http://localhost:5000/api/stats', {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => setStats(data));
   }, []);
@@ -112,6 +110,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Add this
         body: JSON.stringify({ repo_url: repoUrl }),
       });
       
@@ -211,9 +210,26 @@ export default function App() {
           </div>
           
           {user ? (
-            <div className="flex items-center space-x-2">
-              <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full" />
-              <span>{user.login}</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full" />
+                <span>{user.login}</span>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch('http://localhost:5000/api/auth/logout', {
+                      credentials: 'include'
+                    });
+                    setUser(null);
+                  } catch (error) {
+                    console.error('Error logging out:', error);
+                  }
+                }}
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                Logout
+              </button>
             </div>
           ) : (
             <a href="http://localhost:5000/login/github" className="flex items-center space-x-2 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800">
