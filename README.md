@@ -32,7 +32,7 @@ ComponentWeightDescriptionDocumentation=1.0 stars, Quality and completeness of R
 0.0 - 2.4: Needs Work - Requires significant improvements
 
 # 🛠 Technical Architecture
-Backend:   Flask - SQLite - GitHub API - OpenAI API  
+Backend:   Python - Flask - SQLite - GitHub API - OpenAI API  
 Frontend:  React.js - Tailwind CSS 
 
 
