@@ -20,42 +20,20 @@ Smart Recommendations: Generates tailored suggestions for improvement
 Historical Analysis: Tracks repository changes and maintenance patterns
 Caching System: Stores analysis results for quick future reference
 
-🚀 Getting Started
-Prerequisites
-
-Python 3.8+
-Node.js 14+
-GitHub Account
-GitHub OAuth App credentials
-
 🔬 Analysis Components
 Repository Scoring
 The analyzer evaluates repositories across five key dimensions:
 ComponentWeightDescriptionDocumentation1.0Quality and completeness of README and documentationStructure1.0Project organization, dependencies, and testing setupCommunity1.0Stars, forks, and community engagementMaintenance1.0Update frequency and maintenance patternsIssues1.0Issue management and resolution
-Score Interpretation
+
+# Score Interpretation
 
 4.0 - 5.0: Excellent - Well-maintained, documented, and community-supported
 2.5 - 3.9: Average - Functional but has room for improvement
 0.0 - 2.4: Needs Work - Requires significant improvements
 
 🛠 Technical Architecture
-Backend
-
-Flask web framework
-SQLite database for caching
-GitHub API integration
-Custom analysis algorithms
-
-Frontend
-
-React.js
-Tailwind CSS for styling
-Real-time data visualization
-Responsive design
-
-GitHub API for providing repository data
-Open source community for inspiration
-Contributors and users of this tool
+Backend:   Flask - SQLite - GitHub API - OpenAI API
+Frontend:  React.js - Tailwind CSS 
 
 
 <p align="center">Made with ❤️ for the developer community</p>
