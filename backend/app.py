@@ -8,7 +8,7 @@ import json
 import os
 import requests
 import urllib
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 from dotenv import load_dotenv
 import base64
@@ -42,7 +42,7 @@ class RepoAnalysis(db.Model):
     repo_hash = db.Column(db.String(32), unique=True, nullable=False)
     analysis_data = db.Column(db.JSON, nullable=False)
     created_by = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     access_count = db.Column(db.Integer, default=1)
 
 def get_repo_hash(repo_url):
@@ -98,39 +98,91 @@ def analyze_code_with_ai(repo_info, files_content):
     
     score_components['structure'] = structure_score
 
-    # Rest of your scoring logic...
     # Community Engagement Score (1 point)
     stars = repo_info['stars']
     forks = repo_info['forks']
+    watchers = repo_info.get('watchers_count', 0)
+    collaborators = len(repo_info.get('collaborators', []))
+    tags = len(repo_info.get('tags', []))
     
-    if stars > 1000:
-        engagement_score = 1
-    elif stars > 100:
-        engagement_score = 0.7
-    elif stars > 10:
-        engagement_score = 0.4
-    else:
-        engagement_score = 0.2
+    # Calculate engagement score based on multiple factors
+    engagement_factors = {
+        'stars': min(stars / 100, 0.3),  # Up to 0.3 points for stars
+        'forks': min(forks / 50, 0.2),   # Up to 0.2 points for forks
+        'watchers': min(watchers / 50, 0.15),  # Up to 0.15 points for watchers
+        'collaborators': min(collaborators / 5, 0.15),  # Up to 0.15 points for collaborators
+        'tags': min(tags / 10, 0.1),  # Up to 0.1 points for tags
+        'commit_activity': min(commit_frequency / 20, 0.1)  # Up to 0.1 points for commit activity
+    }
+    
+    engagement_score = sum(engagement_factors.values())
+    
+    # Round to prevent floating point issues
+    engagement_score = round(min(engagement_score, 1.0), 2)
     
     score_components['engagement'] = engagement_score
-    findings['strengths'].append(f"Repository has {stars} stars and {forks} forks")
+    
+    # Update the engagement findings
+    engagement_details = []
+    if stars > 0:
+        engagement_details.append(f"{stars} stars")
+    if forks > 0:
+        engagement_details.append(f"{forks} forks")
+    if watchers > 0:
+        engagement_details.append(f"{watchers} watchers")
+    
+    if engagement_details:
+        findings['strengths'].append(f"Community engagement: {', '.join(engagement_details)}")
+    
+    if engagement_score < 0.3:
+        findings['areas_for_improvement'].append("Could benefit from more community engagement")
+        findings['recommendations'].append("Consider promoting the repository to attract more contributors")
 
     # Maintenance Score (1 point)
-    repo_age_days = (datetime.utcnow() - datetime.strptime(repo_info['created_at'], '%Y-%m-%dT%H:%M:%SZ')).days
+    repo_age_days = (datetime.now(timezone.utc) - datetime.strptime(repo_info['created_at'], '%Y-%m-%dT%H:%M:%SZ')).days
     last_update = datetime.strptime(repo_info['last_updated'], '%Y-%m-%dT%H:%M:%SZ')
-    days_since_update = (datetime.utcnow() - last_update).days
+    days_since_update = (datetime.now(timezone.utc) - last_update).days
+    total_commits = repo_info.get('total_commits', 0)
     
-    if days_since_update < 30:
-        maintenance_score = 1
-        findings['strengths'].append("Active maintenance with recent updates")
-    elif days_since_update < 90:
-        maintenance_score = 0.7
+    # Calculate commit frequency (commits per month)
+    if repo_age_days < 1:
+        commit_frequency = 0
+    else:
+        commit_frequency = (total_commits * 30) / repo_age_days
+    
+    # Score based on commit frequency and recency
+    if total_commits <= 2:
+        maintenance_score = 0
+    else:
+        # Base score from commit frequency
+        if commit_frequency >= 10:  # Very active: 10+ commits per month
+            frequency_score = 0.6
+        elif commit_frequency >= 4:  # Moderately active: 4-10 commits per month
+            frequency_score = 0.4
+        elif commit_frequency >= 1:  # Somewhat active: 1-4 commits per month
+            frequency_score = 0.2
+        else:
+            frequency_score = 0.1
+
+        # Recency score
+        if days_since_update < 7:
+            recency_score = 0.4
+        elif days_since_update < 30:
+            recency_score = 0.3
+        elif days_since_update < 90:
+            recency_score = 0.2
+        else:
+            recency_score = 0
+
+        maintenance_score = frequency_score + recency_score
+    
+    if maintenance_score >= 0.8:
+        findings['strengths'].append("Highly active maintenance with regular commits")
+    elif maintenance_score >= 0.5:
         findings['strengths'].append("Regular maintenance activity")
-    elif days_since_update < 180:
-        maintenance_score = 0.4
+    elif maintenance_score >= 0.3:
         findings['areas_for_improvement'].append("Repository could benefit from more frequent updates")
     else:
-        maintenance_score = 0.2
         findings['areas_for_improvement'].append("Repository appears to be unmaintained")
     
     score_components['maintenance'] = maintenance_score
@@ -149,7 +201,7 @@ def analyze_code_with_ai(repo_info, files_content):
     
     score_components['issues'] = issues_score
 
-    repo_age_days = (datetime.utcnow() - datetime.strptime(repo_info['created_at'], '%Y-%m-%dT%H:%M:%SZ')).days
+    repo_age_days = (datetime.now(timezone.utc) - datetime.strptime(repo_info['created_at'], '%Y-%m-%dT%H:%M:%SZ')).days
     commit_count = repo_info.get('commit_count', 0)  # You'll need to pass this from the repo_info
     
     if repo_age_days <= 7 and commit_count <= 5:
@@ -244,22 +296,44 @@ def analyze_repository(repo_url):
     
     base_url = f'https://api.github.com/repos/{owner}/{repo}'
     
-    repo_info = requests.get(base_url, headers=headers).json()
+    # Add print statements
+    print("Analyzing repository:", repo_url)
+    
+    repo_response = requests.get(base_url, headers=headers)
+    repo_info = repo_response.json()
+    
+    print("DEBUG - Repository Info:")
+    print(f"Open Issues Count: {repo_info.get('open_issues_count')}")
+    print(f"Full repo info: {repo_info}")
+    
     languages = requests.get(f'{base_url}/languages', headers=headers).json()
     commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
     contributors = requests.get(f'{base_url}/contributors', params={'per_page': 10}, headers=headers).json()
-    
+    total_commits = len(commits)
+    is_single_commit = total_commits == 1
     files_content = get_repository_files(owner, repo)
+    watchers = github.get(f'/repos/{owner}/{repo}/watchers').json()
+    tags = github.get(f'/repos/{owner}/{repo}/tags').json()
+    collaborators = github.get(f'/repos/{owner}/{repo}/collaborators').json()
     
+    # Debug
+    print("Repository Info:")
+    print(f"Name: {repo_info['name']}")
+    print(f"Open Issues Count: {repo_info['open_issues_count']}")
+    print(f"Raw repo info:", repo_info)  # This will print all available data
+
+
     ai_analysis = analyze_code_with_ai({
-    'name': repo_info['name'],
-    'description': repo_info['description'],
-    'stars': repo_info['stargazers_count'],
-    'forks': repo_info['forks_count'],
-    'created_at': repo_info['created_at'],
-    'last_updated': repo_info['updated_at'],
-    'open_issues': repo_info['open_issues_count'],
-    'commit_count': len(commits)  # Add this line
+        'name': repo_info['name'],
+        'description': repo_info['description'],
+        'stars': repo_info['stargazers_count'],
+        'forks': repo_info['forks_count'],
+        'watchers_count': len(watchers),
+        'tags': tags,
+        'collaborators': collaborators,
+        'total_commits': len(commits),
+        'created_at': repo_info['created_at'],
+        'last_updated': repo_info['updated_at']
     }, files_content)
     
     ai_results = json.loads(ai_analysis)
@@ -272,7 +346,15 @@ def analyze_repository(repo_url):
             'forks': repo_info['forks_count'],
             'open_issues': repo_info['open_issues_count'],
             'created_at': repo_info['created_at'],
-            'last_updated': repo_info['updated_at']
+            'last_updated': repo_info['updated_at'],
+            'is_single_commit': is_single_commit  # Add this
+        },
+        'commit_activity': {
+            'total_commits': total_commits,
+            'recent_commits': [{'sha': c['sha'][:7], 
+                              'message': c['commit']['message'],
+                              'date': c['commit']['author']['date']} 
+                             for c in commits[:5]]
         },
         'languages': languages,
         'commit_activity': {
@@ -286,7 +368,7 @@ def analyze_repository(repo_url):
                          'contributions': c['contributions']} 
                         for c in contributors],
         'ai_analysis': ai_results,
-        'analysis_date': datetime.utcnow().isoformat()
+        'analysis_date': datetime.now(timezone.utc).isoformat()
     }
 
 
