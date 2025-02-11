@@ -118,7 +118,81 @@ const LandingPage = ({ onLogin }) => {
 };
 
 const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze, error, analysis, analysisInfo, onLogout }) => {
-  
+  const renderAnalysis = (analysis, analysisInfo) => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
+          {analysisInfo.cached && (
+            <div className="mb-4 flex items-center space-x-2 text-sm text-green-800 bg-green-50 p-2 rounded">
+              <Database className="w-4 h-4" />
+              <span>Analysis from cache - Originally analyzed by {analysisInfo.analyzedBy} on {formatDate(analysisInfo.analyzedAt)}</span>
+            </div>
+          )}
+
+          {analysis.commit_activity.total_commits === 1 && (
+            <div className="mb-4 flex items-center px-4 py-2 bg-red-100 text-red-800 rounded-lg shadow-sm">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              <div>
+                <span className="font-semibold">Warning:</span>
+                <span className="ml-1">Single commit repository - proceed with CAUTION!</span>
+              </div>
+            </div>
+          )}
+          
+          <h2 className="text-2xl font-bold mb-4 text-green-900">{analysis.repository.name}</h2>
+          <p className="text-gray-600 mb-4">{analysis.repository.description}</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+              <Star className="w-5 h-5 text-green-600" />
+              <span className="text-green-900">{analysis.repository.stars} stars</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+              <GitFork className="w-5 h-5 text-green-600" />
+              <span className="text-green-900">{analysis.repository.forks} forks</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+              <Clock className="w-5 h-5 text-green-600" />
+              <span className="text-green-900">Created {formatDate(analysis.repository.created_at)}</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+              <Users className="w-5 h-5 text-green-600" />
+              <span className="text-green-900">{analysis.contributors.length} contributors</span>
+            </div>
+          </div>
+        </div>
+
+        <AIAnalysis aiAnalysis={analysis.ai_analysis} />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
+            <h3 className="text-xl font-semibold mb-4 text-green-900">Languages</h3>
+            <div className="space-y-2">
+              {Object.entries(analysis.languages).map(([language, bytes]) => (
+                <div key={language} className="flex justify-between items-center">
+                  <span className="text-green-800">{language}</span>
+                  <span className="text-gray-600">{Math.round(bytes / 1024)} KB</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
+            <h3 className="text-xl font-semibold mb-4 text-green-900">Recent Commits</h3>
+            <div className="space-y-4">
+              {analysis.commit_activity.recent_commits.map((commit) => (
+                <div key={commit.sha} className="border-b border-green-100 pb-2">
+                  <div className="text-sm text-green-600">{commit.sha}</div>
+                  <div className="text-gray-900">{commit.message}</div>
+                  <div className="text-sm text-gray-600">{formatDate(commit.date)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
   return (
     <div className="min-h-screen bg-green-50">
       <nav className="bg-white shadow-sm border-b border-green-100">
