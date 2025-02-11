@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { GithubIcon, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
-
+import PlagiarismAnalysis from './PlagiarismAnalysis';
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -226,7 +226,8 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
         </div>
 
         <AIAnalysis aiAnalysis={analysis.ai_analysis} />
-
+        <PlagiarismAnalysis analysis={analysis} />
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
             <h3 className="text-xl font-semibold mb-4 text-green-900">Languages</h3>
