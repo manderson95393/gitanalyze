@@ -384,10 +384,16 @@ export default function App() {
       });
       
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to analyze repository');
+      }
+
       console.log("API Response:", data);
       if (data.error) {
         setError(data.error);
-      } else {
+      } 
+      else {
         console.log("Setting analysis:", data.analysis);
         setAnalysis(data.analysis);
         setAnalysisInfo({
@@ -396,10 +402,12 @@ export default function App() {
           analyzedAt: data.analyzed_at
         });
       }
-    } catch (err) {
+    } 
+    catch (err) {
       console.error("Analysis error:", err); 
-      setError('Failed to analyze repository');
-    } finally {
+      setError(err.message || 'Failed to analyze repository');
+    } 
+    finally {
       setLoading(false);
     }
   };
