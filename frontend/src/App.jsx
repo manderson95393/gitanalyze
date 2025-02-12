@@ -50,7 +50,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {Object.entries(aiAnalysis.score_breakdown).map(([category, score]) => (
           <div key={category} className="bg-green-50 p-4 rounded-lg">
-            <div className="text-sm text-green-800 capitalize">{category}</div>
+            <div className="text-sm text-green-800 capitalize">{category.replace('_', ' ')}</div>
             <div className="text-lg font-semibold text-green-900">{(score * 5).toFixed(1)}/5</div>
             <div className="w-full bg-green-200 rounded-full h-2.5">
               <div 
@@ -61,6 +61,16 @@ const AIAnalysis = ({ aiAnalysis }) => {
           </div>
         ))}
       </div>
+
+      {/* AI Insights Section */}
+      {aiAnalysis.ai_insights && (
+        <div className="mb-6">
+          <h4 className="font-medium text-green-900 mb-3">AI Insights</h4>
+          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap">
+            {aiAnalysis.ai_insights}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div>
@@ -224,7 +234,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
             </div>
           </div>
         </div>
-
+          
         <AIAnalysis aiAnalysis={analysis.ai_analysis} />
         <PlagiarismAnalysis analysis={analysis} />
         
@@ -374,9 +384,11 @@ export default function App() {
       });
       
       const data = await res.json();
+      console.log("API Response:", data);
       if (data.error) {
         setError(data.error);
       } else {
+        console.log("Setting analysis:", data.analysis);
         setAnalysis(data.analysis);
         setAnalysisInfo({
           cached: data.cached,
@@ -385,6 +397,7 @@ export default function App() {
         });
       }
     } catch (err) {
+      console.error("Analysis error:", err); 
       setError('Failed to analyze repository');
     } finally {
       setLoading(false);
