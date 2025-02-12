@@ -56,44 +56,49 @@ def get_repo_hash(repo_url):
 def plagiarism_analysis(repo_info, files_content):
     print("Starting plagiarism analysis...")
     
+    # Initialize variables first
+    commit_patterns = []
+    red_flags = []
+    contributor_count = len(repo_info.get('contributors', []))
+    repo_age_days = 0
+    commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
+    time_span_days = 0
+
+    # Calculate repository age early
+    try:
+        repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        repo_age_days = (now - repo_created).days
+        
+        if repo_age_days <= 7:
+            red_flags.append({
+                "severity": "high",
+                "description": "Repository is less than a week old - typical of scam projects"
+            })
+        elif repo_age_days <= 30:
+            red_flags.append({
+                "severity": "medium",
+                "description": "Repository is less than a month old - exercise caution"
+            })
+    except Exception as e:
+        print(f"Error calculating repository age: {str(e)}")
+        repo_age_days = 0
+
     # Get OpenRouter API key from environment
     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
     if not openrouter_api_key:
         print("WARNING: No OpenRouter API key found!")
         return None
-    else:
-        print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")  # Only print first 4 chars for security
-        print(f"Response status code: {response.status_code}")
 
-    headers = {
-    "Authorization": f"Bearer {openrouter_api_key}",
-    "Content-Type": "application/json",
-    "X-Title": "GitHub Repository Analyzer"
-    }
+    print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")
 
-    response = requests.post(
-        "https://api.openrouter.ai/api/v1/chat/completions", 
-        headers=headers,
-        json={
-            "model": "anthropic/claude-3-opus-20240229",
-            "messages": [{"role": "user", "content": analysis_prompt}],
-            "max_tokens": 1000
-        }
-    )
-
-    # Initialize lists for findings
-    commit_patterns = []
-    red_flags = []
-    
     # Analyze commit patterns
-    commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
     if len(commits) < 2:
         pattern = "Repository has very few commits which is highly suspicious"
         commit_patterns.append(pattern)
         red_flags.append({"severity": "high", "description": pattern})
     
     # Sort and analyze commits
-    time_span_days = 0
     if commits:
         try:
             sorted_commits = sorted(commits, key=lambda x: x['date'])
@@ -122,33 +127,12 @@ def plagiarism_analysis(repo_info, files_content):
     
     # Analyze contributor patterns
     total_code = sum(repo_info.get('languages', {}).values())
-    contributor_count = len(repo_info.get('contributors', []))
     code_per_contributor = total_code / max(contributor_count, 1)
     
     if code_per_contributor > 1000000 and contributor_count < 3:
         pattern = "Large codebase with suspiciously few contributors"
         commit_patterns.append(pattern)
         red_flags.append({"severity": "high", "description": pattern})
-    
-    # Calculate repository age
-    try:
-        repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
-        repo_age_days = (now - repo_created).days
-        
-        if repo_age_days <= 7:
-            red_flags.append({
-                "severity": "high",
-                "description": "Repository is less than a week old - typical of scam projects"
-            })
-        elif repo_age_days <= 30:
-            red_flags.append({
-                "severity": "medium",
-                "description": "Repository is less than a month old - exercise caution"
-            })
-    except Exception as e:
-        print(f"Error calculating repository age: {str(e)}")
-        repo_age_days = 0
 
     # Prepare data for AI analysis
     analysis_prompt = f"""You are a crypto coin trader that seeks out coins with software projects. These software projects often publish to github. There are a lot of scam projects that steal code. I am asking you to review the repository and provide your score from Beware, Average, Good with explanation.
@@ -183,22 +167,29 @@ def plagiarism_analysis(repo_info, files_content):
 
                 Provide a rating (Beware/Average/Good) with detailed explanation."""
     
-    response = None
+    headers = {
+        "Authorization": f"Bearer {openrouter_api_key}",
+        "Content-Type": "application/json",
+        "X-Title": "GitHub Repository Analyzer"
+    }
+
     try:
         print("Calling OpenRouter API...")
         response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {openrouter_api_key}",
-                "Content-Type": "application/json",
-            },
+            "https://api.openrouter.ai/api/v1/chat/completions",
+            headers=headers,
             json={
                 "model": "anthropic/claude-3-opus-20240229",
-                "messages": [{"role": "user", "content": analysis_prompt}]
+                "messages": [{"role": "user", "content": analysis_prompt}],
+                "max_tokens": 1000
             }
         )
         print("OpenRouter API Response:", response.text)
         
+        if not response.ok:
+            print(f"API request failed: {response.status_code} - {response.text}")
+            return None
+
         ai_response = response.json()
         analysis_text = ai_response['choices'][0]['message']['content']
         
@@ -261,7 +252,8 @@ def plagiarism_analysis(repo_info, files_content):
         print(f"Error in plagiarism analysis: {str(e)}")
         traceback.print_exc()
         return None
-
+    
+    
 def analyze_code_with_ai(repo_info, files_content):
     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
     score_components = {}
