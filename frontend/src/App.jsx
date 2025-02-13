@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { GithubIcon, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
+import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput } from './matrix-components';
+
+
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -50,7 +53,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {Object.entries(aiAnalysis.score_breakdown).map(([category, score]) => (
           <div key={category} className="bg-green-50 p-4 rounded-lg">
-            <div className="text-sm text-green-800 capitalize">{category}</div>
+            <div className="text-sm text-green-800 capitalize">{category.replace('_', ' ')}</div>
             <div className="text-lg font-semibold text-green-900">{(score * 5).toFixed(1)}/5</div>
             <div className="w-full bg-green-200 rounded-full h-2.5">
               <div 
@@ -61,6 +64,16 @@ const AIAnalysis = ({ aiAnalysis }) => {
           </div>
         ))}
       </div>
+
+      {/* AI Insights Section */}
+      {aiAnalysis.ai_insights && (
+        <div className="mb-6">
+          <h4 className="font-medium text-green-900 mb-3">AI Insights</h4>
+          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap">
+            {aiAnalysis.ai_insights}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div>
@@ -94,88 +107,30 @@ const AIAnalysis = ({ aiAnalysis }) => {
   );
 };
 
-const ParticleBackground = () => {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas size
-    const setCanvasSize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    
-    setCanvasSize();
-    window.addEventListener('resize', setCanvasSize);
-
-    // Matrix rain parameters
-    const fontSize = 14;
-    const columns = canvas.width / fontSize;
-    const drops = new Array(Math.floor(columns)).fill(1);
-    
-    // Characters to use in the rain
-    const matrix = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789";
-    
-    // Animation function
-    const draw = () => {
-      // Semi-transparent black to create fade effect
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Increased fade for more contrast
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.fillStyle = 'rgba(0, 255, 65, 0.35)'; // Semi-transparent Matrix green
-      ctx.font = fontSize + 'px monospace';
-      
-      // Draw rain
-      for (let i = 0; i < drops.length; i++) {
-        const text = matrix[Math.floor(Math.random() * matrix.length)];
-        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-        
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      }
-    };
-
-    // Run animation
-    const interval = setInterval(draw, 33);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', setCanvasSize);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10" />;
-};
-
 const LandingPage = ({ onLogin }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden">
-      <ParticleBackground />
+      <MatrixRainComponent />
       
-      <div className="text-center space-y-8 p-8 relative z-10">
+      <GlowingCardComponent className="text-center space-y-16 p-8 max-w-2xl">
         <div className="flex items-center justify-center space-x-4">
-          <GithubIcon className="w-12 h-12 text-green-400" />
+          <Search className="w-12 h-12 text-green-400" />
           <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
         </div>
         
-        <p className="text-xl text-green-300 max-w-2xl font-mono">
+        <p className="text-xl text-green-300 font-mono">
           Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
         </p>
         
-        <div className="relative">
-          <a 
-            href="http://localhost:5000/login/github" 
-            className="inline-flex items-center space-x-3 px-6 py-3 bg-black/50 border border-green-400/50 text-green-400 rounded-lg hover:bg-green-900/20 hover:border-green-400 transition-all duration-200 text-lg font-mono"
-          >
-            <GithubIcon className="w-6 h-6" />
-            <span>Login with GitHub</span>
-          </a>
+        <div>
+          <CyberButton onClick={() => window.location.href = "http://localhost:5000/login/github"}>
+            <div className="flex items-center space-x-3">
+              <GithubIcon className="w-6 h-6" />
+              <span>Login with GitHub</span>
+            </div>
+          </CyberButton>
         </div>
-      </div>
+      </GlowingCardComponent>
     </div>
   );
 };
@@ -184,71 +139,118 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
   const renderAnalysis = (analysis, analysisInfo) => {
     return (
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
           {analysisInfo.cached && (
-            <div className="mb-4 flex items-center space-x-2 text-sm text-green-800 bg-green-50 p-2 rounded">
-              <Database className="w-4 h-4" />
-              <span>Analysis from cache - Originally analyzed by {analysisInfo.analyzedBy} on {formatDate(analysisInfo.analyzedAt)}</span>
+            <div className="mb-4 flex items-center space-x-2 text-sm bg-gray-800/50 p-3 rounded-lg border border-green-400/20">
+              <Database className="w-4 h-4 text-green-400" />
+              <span className="text-gray-300">Analysis from cache - Originally analyzed by {analysisInfo.analyzedBy} on {formatDate(analysisInfo.analyzedAt)}</span>
             </div>
           )}
 
           {analysis.commit_activity.total_commits === 1 && (
-            <div className="mb-4 flex items-center px-4 py-2 bg-red-100 text-red-800 rounded-lg shadow-sm">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              <div>
+            <div className="mb-4 flex items-center px-4 py-3 bg-red-900/20 rounded-lg border border-red-500/30">
+              <AlertTriangle className="w-5 h-5 mr-2 text-red-400" />
+              <div className="text-red-300">
                 <span className="font-semibold">Warning:</span>
                 <span className="ml-1">Single commit repository - proceed with CAUTION!</span>
               </div>
             </div>
           )}
           
-          <h2 className="text-2xl font-bold mb-4 text-green-900">{analysis.repository.name}</h2>
-          <p className="text-gray-600 mb-4">{analysis.repository.description}</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">{analysis.repository.name}</h2>
+              <p className="text-gray-400">{analysis.repository.description}</p>
+            </div>
+            <div className="mt-4 md:mt-0 flex items-center space-x-3">
+              <div className="px-4 py-2 bg-green-500/10 rounded-lg border border-green-500/30">
+                <div className="text-xs text-green-400 uppercase">Health Score</div>
+                <div className="text-2xl font-bold text-green-300">98%</div>
+              </div>
+              <div className="px-4 py-2 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <div className="text-xs text-blue-400 uppercase">Activity</div>
+                <div className="text-2xl font-bold text-blue-300">High</div>
+              </div>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-              <Star className="w-5 h-5 text-green-600" />
-              <span className="text-green-900">{analysis.repository.stars} stars</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors duration-300">
+              <div className="flex items-center justify-between">
+                <Star className="w-5 h-5 text-yellow-400" />
+                <span className="text-2xl font-bold text-white">{analysis.repository.stars}</span>
+              </div>
+              <div className="text-sm text-gray-400 mt-1">Total Stars</div>
             </div>
-            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-              <GitFork className="w-5 h-5 text-green-600" />
-              <span className="text-green-900">{analysis.repository.forks} forks</span>
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors duration-300">
+              <div className="flex items-center justify-between">
+                <GitFork className="w-5 h-5 text-blue-400" />
+                <span className="text-2xl font-bold text-white">{analysis.repository.forks}</span>
+              </div>
+              <div className="text-sm text-gray-400 mt-1">Total Forks</div>
             </div>
-            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-              <Clock className="w-5 h-5 text-green-600" />
-              <span className="text-green-900">Created {formatDate(analysis.repository.created_at)}</span>
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors duration-300">
+              <div className="flex items-center justify-between">
+                <Clock className="w-5 h-5 text-purple-400" />
+                <span className="text-sm font-medium text-white">{formatDate(analysis.repository.created_at)}</span>
+              </div>
+              <div className="text-sm text-gray-400 mt-1">Created On</div>
             </div>
-            <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-              <Users className="w-5 h-5 text-green-600" />
-              <span className="text-green-900">{analysis.contributors.length} contributors</span>
+            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors duration-300">
+              <div className="flex items-center justify-between">
+                <Users className="w-5 h-5 text-green-400" />
+                <span className="text-2xl font-bold text-white">{analysis.contributors.length}</span>
+              </div>
+              <div className="text-sm text-gray-400 mt-1">Contributors</div>
             </div>
           </div>
         </div>
-
+          
         <AIAnalysis aiAnalysis={analysis.ai_analysis} />
         <PlagiarismAnalysis analysis={analysis} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
-            <h3 className="text-xl font-semibold mb-4 text-green-900">Languages</h3>
-            <div className="space-y-2">
-              {Object.entries(analysis.languages).map(([language, bytes]) => (
-                <div key={language} className="flex justify-between items-center">
-                  <span className="text-green-800">{language}</span>
-                  <span className="text-gray-600">{Math.round(bytes / 1024)} KB</span>
-                </div>
-              ))}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
+            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+              <Database className="w-5 h-5 mr-2 text-green-400" />
+              Languages
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(analysis.languages).map(([language, bytes]) => {
+                const percentage = (bytes / Object.values(analysis.languages).reduce((a, b) => a + b, 0)) * 100;
+                return (
+                  <div key={language} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">{language}</span>
+                      <span className="text-gray-400">{Math.round(percentage)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
-            <h3 className="text-xl font-semibold mb-4 text-green-900">Recent Commits</h3>
-            <div className="space-y-4">
-              {analysis.commit_activity.recent_commits.map((commit) => (
-                <div key={commit.sha} className="border-b border-green-100 pb-2">
-                  <div className="text-sm text-green-600">{commit.sha}</div>
-                  <div className="text-gray-900">{commit.message}</div>
-                  <div className="text-sm text-gray-600">{formatDate(commit.date)}</div>
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-4 rounded-xl shadow-xl border border-green-500/20">
+            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+              <GitFork className="w-5 h-5 mr-2 text-green-400" />
+              Recent Commits
+            </h3>
+            <div className="space-y-2">
+              {analysis.commit_activity.recent_commits.slice(0, 3).map((commit) => (
+                <div key={commit.sha} 
+                     className="p-3 rounded-lg border border-gray-700 hover:border-green-500/30 transition-all duration-300">
+                  <div className="text-xs font-mono text-gray-500">{commit.sha.substring(0, 7)}</div>
+                  <div className="text-gray-300 mt-1">{commit.message}</div>
+                  <div className="text-xs text-gray-500 mt-1 flex items-center">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {formatDate(commit.date)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -257,23 +259,26 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
       </div>
     );
   };
+
   return (
-    <div className="min-h-screen bg-green-50">
-      <nav className="bg-white shadow-sm border-b border-green-100">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <GithubIcon className="w-6 h-6 text-green-900" />
-            <span className="text-xl font-semibold text-green-900">Repo Analyzer</span>
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black">
+      <nav className="bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="bg-green-500/10 p-2 rounded-lg">
+              <GithubIcon className="w-6 h-6 text-green-400" />
+            </div>
+            <span className="text-xl font-bold text-white">Repo Analyzer</span>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border-2 border-green-200" />
-              <span className="text-green-900">{user.login}</span>
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
+              <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full ring-2 ring-green-500/30" />
+              <span className="text-gray-300">{user.login}</span>
             </div>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-sm text-green-700 hover:bg-green-50 rounded-md transition-colors duration-200"
+              className="px-4 py-2 text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-gray-600 transition-all duration-200"
             >
               Logout
             </button>
@@ -283,36 +288,53 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {stats && (
-          <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-200 mb-8 hover:shadow-lg transition-shadow duration-200">
-            <h3 className="text-lg font-semibold mb-2 text-green-900">Analytics Stats</h3>
-            <div className="text-sm text-green-800">
-              Total repositories analyzed: {stats.total_analyses}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="bg-green-500/10 p-3 rounded-lg">
+                <BarChart2 className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Analytics Dashboard</h3>
+                <p className="text-gray-400">Total repositories analyzed: {stats.total_analyses}</p>
+              </div>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleAnalyze} className="mb-8">
-          <div className="flex space-x-4">
-            <input
-              type="text"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="Enter GitHub repository URL"
-              className="flex-1 p-2 border border-green-200 rounded-md focus:ring-2 focus:ring-green-200 focus:border-green-300 outline-none"
-              required
-            />
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
+          <form onSubmit={handleAnalyze} className="flex space-x-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="Enter GitHub repository URL"
+                className="w-full px-4 py-3 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors duration-200"
+                required
+              />
+            </div>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors duration-200"
+              className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg disabled:opacity-50 disabled:hover:bg-green-600 transition-colors duration-200 flex items-center space-x-2"
             >
-              {loading ? 'Analyzing...' : 'Analyze'}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Analyzing...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  <span>Analyze</span>
+                </>
+              )}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
 
         {error && (
-          <div className="p-4 bg-red-100 text-red-700 rounded-md mb-4">
+          <div className="p-4 mb-8 bg-red-900/20 border border-red-500/30 text-red-400 rounded-xl">
             {error}
           </div>
         )}
@@ -374,9 +396,17 @@ export default function App() {
       });
       
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to analyze repository');
+      }
+
+      console.log("API Response:", data);
       if (data.error) {
         setError(data.error);
-      } else {
+      } 
+      else {
+        console.log("Setting analysis:", data.analysis);
         setAnalysis(data.analysis);
         setAnalysisInfo({
           cached: data.cached,
@@ -384,9 +414,12 @@ export default function App() {
           analyzedAt: data.analyzed_at
         });
       }
-    } catch (err) {
-      setError('Failed to analyze repository');
-    } finally {
+    } 
+    catch (err) {
+      console.error("Analysis error:", err); 
+      setError(err.message || 'Failed to analyze repository');
+    } 
+    finally {
       setLoading(false);
     }
   };
