@@ -1,9 +1,9 @@
+import traceback
 from flask import redirect, url_for, session
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_sqlalchemy import SQLAlchemy
-from openai import OpenAI
 import json
 import os
 import requests
@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 import hashlib
 from dotenv import load_dotenv
 import base64
-
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 load_dotenv()
@@ -33,9 +32,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///github_analyzer.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# OpenAI setup
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
 class RepoAnalysis(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     repo_url = db.Column(db.String(500), unique=True, nullable=False)
@@ -45,10 +41,221 @@ class RepoAnalysis(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     access_count = db.Column(db.Integer, default=1)
 
+    def __init__(self, repo_url, repo_hash, analysis_data, created_by):
+        self.repo_url = repo_url
+        self.repo_hash = repo_hash
+        if isinstance(analysis_data, str):
+            self.analysis_data = json.loads(analysis_data)
+        else:
+            self.analysis_data = analysis_data
+        self.created_by = created_by
+
 def get_repo_hash(repo_url):
     return hashlib.md5(repo_url.encode()).hexdigest()
 
+def plagiarism_analysis(repo_info, files_content):
+    print("Starting plagiarism analysis...")
+    
+    # Initialize variables first
+    commit_patterns = []
+    red_flags = []
+    contributor_count = len(repo_info.get('contributors', []))
+    repo_age_days = 0
+    commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
+    time_span_days = 0
+
+    # Calculate repository age early
+    try:
+        repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        repo_age_days = (now - repo_created).days
+        
+        if repo_age_days <= 7:
+            red_flags.append({
+                "severity": "high",
+                "description": "Repository is less than a week old - typical of scam projects"
+            })
+        elif repo_age_days <= 30:
+            red_flags.append({
+                "severity": "medium",
+                "description": "Repository is less than a month old - exercise caution"
+            })
+    except Exception as e:
+        print(f"Error calculating repository age: {str(e)}")
+        repo_age_days = 0
+
+    # Get OpenRouter API key from environment
+    openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
+    if not openrouter_api_key:
+        print("WARNING: No OpenRouter API key found!")
+        return None
+
+    print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")
+
+    # Analyze commit patterns
+    if len(commits) < 2:
+        pattern = "Repository has very few commits which is highly suspicious"
+        commit_patterns.append(pattern)
+        red_flags.append({"severity": "high", "description": pattern})
+    
+    # Sort and analyze commits
+    if commits:
+        try:
+            sorted_commits = sorted(commits, key=lambda x: x['date'])
+            first_commit = datetime.strptime(sorted_commits[0]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+            last_commit = datetime.strptime(sorted_commits[-1]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+            time_span_days = (last_commit - first_commit).days
+            
+            if time_span_days <= 2:
+                pattern = "All commits were made within 2 days - highly suspicious for copied code"
+                commit_patterns.append(pattern)
+                red_flags.append({"severity": "high", "description": pattern})
+            elif time_span_days <= 7:
+                pattern = "All commits were made within 7 days - potentially suspicious activity"
+                commit_patterns.append(pattern)
+                red_flags.append({"severity": "medium", "description": pattern})
+        except Exception as e:
+            print(f"Error analyzing commit dates: {str(e)}")
+    
+    # Analyze commit messages
+    commit_messages = [c['message'] for c in commits]
+    unique_messages = set(commit_messages)
+    if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3:
+        pattern = "Low variety in commit messages suggests automated or bulk commits"
+        commit_patterns.append(pattern)
+        red_flags.append({"severity": "medium", "description": pattern})
+    
+    # Analyze contributor patterns
+    total_code = sum(repo_info.get('languages', {}).values())
+    code_per_contributor = total_code / max(contributor_count, 1)
+    
+    if code_per_contributor > 1000000 and contributor_count < 3:
+        pattern = "Large codebase with suspiciously few contributors"
+        commit_patterns.append(pattern)
+        red_flags.append({"severity": "high", "description": pattern})
+
+    # Prepare data for AI analysis
+    analysis_prompt = f"""You are a crypto coin trader that seeks out coins with software projects. These software projects often publish to github. There are a lot of scam projects that steal code. I am asking you to review the repository and provide your score from Beware, Average, Good with explanation.
+
+                Repository Information:
+                - Name: {repo_info['repository']['name']}
+                - Description: {repo_info['repository']['description']}
+                - Created: {repo_info['repository']['created_at']}
+                - Stars: {repo_info['repository']['stars']}
+                - Forks: {repo_info['repository']['forks']}
+                - Contributors: {contributor_count}
+                - Total Commits: {repo_info['commit_activity']['total_commits']}
+                - Repository Age: {repo_age_days} days
+
+                Suspicious Patterns Found:
+                {chr(10).join([f"- {pattern}" for pattern in commit_patterns])}
+
+                Recent Commits:
+                {chr(10).join([f"- {commit['date']}: {commit['message']}" for commit in commits[:5]])}
+
+                Please analyze for:
+                1. Signs of plagiarized or copied code
+                2. Poor code practices (exposed API keys, credentials)
+                3. Repository history and commit patterns
+                4. Signs of potential scam or fraudulent project
+
+                Pay special attention to:
+                - Brand new repositories or those with all commits within 1-2 days
+                - Exposed sensitive information in code
+                - Signs of copied/stolen code
+                - Suspicious commit patterns
+
+                Provide a rating (Beware/Average/Good) with detailed explanation."""
+    
+    headers = {
+        "Authorization": f"Bearer {openrouter_api_key}",
+        "Content-Type": "application/json",
+        "X-Title": "GitHub Repository Analyzer"
+    }
+
+    try:
+        print("Calling OpenRouter API...")
+        response = requests.post(
+            "https://api.openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json={
+                "model": "anthropic/claude-3-opus-20240229",
+                "messages": [{"role": "user", "content": analysis_prompt}],
+                "max_tokens": 1000
+            }
+        )
+        print("OpenRouter API Response:", response.text)
+        
+        if not response.ok:
+            print(f"API request failed: {response.status_code} - {response.text}")
+            return None
+
+        ai_response = response.json()
+        analysis_text = ai_response['choices'][0]['message']['content']
+        
+        # Extract rating from analysis
+        rating = "Average"  # Default
+        if "beware" in analysis_text.lower():
+            rating = "Beware"
+            severity = "high"
+        elif "good" in analysis_text.lower():
+            rating = "Good"
+            severity = "low"
+        else:
+            severity = "medium"
+        
+        # Calculate risk score
+        risk_factors = {
+            'commit_timespan': 30 if time_span_days <= 2 else (20 if time_span_days <= 7 else 0),
+            'commit_variety': 20 if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3 else 0,
+            'contributor_ratio': 30 if code_per_contributor > 1000000 and contributor_count < 3 else 0,
+            'commit_count': 20 if len(commits) < 2 else 0,
+            'repo_age': 20 if repo_age_days <= 7 else (10 if repo_age_days <= 30 else 0)
+        }
+        
+        risk_score = sum(risk_factors.values())
+        
+        # Generate recommendations based on findings
+        recommendations = [
+            "Investigate commit history for bulk copying of code",
+            "Review git logs for signs of repository copying",
+            "Review contributor permissions and access patterns",
+            "Verify authenticity of large code contributions"
+        ]
+        
+        if repo_age_days <= 30:
+            recommendations.append("Wait for project to establish longer history before investing")
+        if time_span_days <= 7:
+            recommendations.append("Investigate why all commits were made in such a short timeframe")
+        
+        result = {
+            "repository_name": repo_info['repository']['name'],
+            "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
+            "risk_assessment": {
+                "score": risk_score,
+                "risk_level": rating,
+                "red_flags": red_flags,
+                "ai_analysis": analysis_text
+            },
+            "recommendations": recommendations,
+            "metadata": {
+                "total_commits": repo_info['commit_activity']['total_commits'],
+                "languages_used": list(repo_info.get('languages', {}).keys()),
+                "contributor_count": contributor_count,
+                "repository_age_days": repo_age_days
+            }
+        }
+        print("Plagiarism analysis result:", result)
+        return result
+    
+    except Exception as e:
+        print(f"Error in plagiarism analysis: {str(e)}")
+        traceback.print_exc()
+        return None
+    
+    
 def analyze_code_with_ai(repo_info, files_content):
+    openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
     score_components = {}
     total_score = 0
     max_score = 5
@@ -105,7 +312,6 @@ def analyze_code_with_ai(repo_info, files_content):
     collaborators = len(repo_info.get('collaborators', []))
     tags = len(repo_info.get('tags', []))
     
-    # Fix timezone-aware datetime comparisons
     repo_created = datetime.strptime(repo_info['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
     last_update = datetime.strptime(repo_info['last_updated'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
     now = datetime.now(timezone.utc)
@@ -123,22 +329,18 @@ def analyze_code_with_ai(repo_info, files_content):
 
     # Calculate engagement score based on multiple factors
     engagement_factors = {
-        'stars': min(stars / 100, 0.3),  # Up to 0.3 points for stars
-        'forks': min(forks / 50, 0.2),   # Up to 0.2 points for forks
-        'watchers': min(watchers / 50, 0.15),  # Up to 0.15 points for watchers
-        'collaborators': min(collaborators / 5, 0.15),  # Up to 0.15 points for collaborators
-        'tags': min(tags / 10, 0.1),  # Up to 0.1 points for tags
-        'commit_activity': min(commit_frequency / 20, 0.1)  # Up to 0.1 points for commit activity
+        'stars': min(stars / 100, 0.3),
+        'forks': min(forks / 50, 0.2),
+        'watchers': min(watchers / 50, 0.15),
+        'collaborators': min(collaborators / 5, 0.15),
+        'tags': min(tags / 10, 0.1),
+        'commit_activity': min(commit_frequency / 20, 0.1)
     }
     
     engagement_score = sum(engagement_factors.values())
-    
-    # Round to prevent floating point issues
     engagement_score = round(min(engagement_score, 1.0), 2)
-    
     score_components['engagement'] = engagement_score
     
-    # Update the engagement findings
     engagement_details = []
     if stars > 0:
         engagement_details.append(f"{stars} stars")
@@ -154,32 +356,25 @@ def analyze_code_with_ai(repo_info, files_content):
         findings['areas_for_improvement'].append("Could benefit from more community engagement")
         findings['recommendations'].append("Consider promoting the repository to attract more contributors")
 
-    
-    # Score based on commit frequency and recency
-    if total_commits <= 2:
-        maintenance_score = 0
+    if commit_frequency >= 10:
+        frequency_score = 0.6
+    elif commit_frequency >= 4:
+        frequency_score = 0.4
+    elif commit_frequency >= 1:
+        frequency_score = 0.2
     else:
-        # Base score from commit frequency
-        if commit_frequency >= 10:  # Very active: 10+ commits per month
-            frequency_score = 0.6
-        elif commit_frequency >= 4:  # Moderately active: 4-10 commits per month
-            frequency_score = 0.4
-        elif commit_frequency >= 1:  # Somewhat active: 1-4 commits per month
-            frequency_score = 0.2
-        else:
-            frequency_score = 0.1
+        frequency_score = 0.1
 
-        # Recency score
-        if days_since_update < 7:
-            recency_score = 0.4
-        elif days_since_update < 30:
-            recency_score = 0.3
-        elif days_since_update < 90:
-            recency_score = 0.2
-        else:
-            recency_score = 0
+    if days_since_update < 7:
+        recency_score = 0.4
+    elif days_since_update < 30:
+        recency_score = 0.3
+    elif days_since_update < 90:
+        recency_score = 0.2
+    else:
+        recency_score = 0
 
-        maintenance_score = frequency_score + recency_score
+    maintenance_score = frequency_score + recency_score
     
     if maintenance_score >= 0.8:
         findings['strengths'].append("Highly active maintenance with regular commits")
@@ -206,9 +401,7 @@ def analyze_code_with_ai(repo_info, files_content):
     
     score_components['issues'] = issues_score
 
-    commit_count = repo_info.get('commit_count', 0)  # You'll need to pass this from the repo_info
-    
-    if repo_age_days <= 7 and commit_count <= 5:
+    if repo_age_days <= 7:
         maturity_score = 0.2
         findings['areas_for_improvement'].append("Repository is very new with limited commit history")
         findings['recommendations'].append("Continue developing the project and making regular commits")
@@ -220,9 +413,8 @@ def analyze_code_with_ai(repo_info, files_content):
         findings['strengths'].append("Repository has established history")
     
     score_components['maturity'] = maturity_score
-    max_score = 6  # Update max_score since we added a new component
+    max_score = 6
 
-    # Calculate final score (keep your existing calculation)
     total_score = sum(score_components.values())
     normalized_score = round((total_score / max_score) * 5, 1)
     
@@ -237,16 +429,72 @@ def analyze_code_with_ai(repo_info, files_content):
     else:
         rating = "Bad"
 
-    analysis = {
-        "score": rating,
-        "numeric_score": normalized_score,
-        "score_breakdown": score_components,
-        "strengths": findings['strengths'],
-        "areas_for_improvement": findings['areas_for_improvement'],
-        "recommendations": findings['recommendations']
-    }
+    analysis_prompt = f"""You are a software quality analyst. Analyze this GitHub repository and provide a detailed quality assessment.
+
+            Repository Information:
+            - Name: {repo_info['name']}
+            - Description: {repo_info['description']}
+            - Stars: {repo_info['stars']}
+            - Forks: {repo_info['forks']}
+            - Issues: {repo_info['open_issues_count']}
+
+            Current Metrics:
+            Documentation Score: {score_components['documentation']}/1
+            Project Structure: {score_components.get('structure', 0)}/1
+            Community Engagement: {score_components.get('engagement', 0)}/1
+            Maintenance: {score_components.get('maintenance', 0)}/1
+            Issues Management: {score_components.get('issues', 0)}/1
+            Project Maturity: {score_components.get('maturity', 0)}/1
+
+            Provide a comprehensive analysis of:
+            1. Code quality and organization
+            2. Project structure and best practices
+            3. Community engagement and project health
+            4. Development patterns and maintenance
+            5. Overall project viability
+
+            Include specific observations about strengths and areas needing improvement."""
     
-    return json.dumps(analysis)
+    response = None
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {openrouter_api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "anthropic/claude-3-opus-20240229",
+                "messages": [{"role": "user", "content": analysis_prompt}]
+            }
+        )
+        
+        ai_response = response.json()
+        analysis_text = ai_response['choices'][0]['message']['content']
+        
+        analysis = {
+            "score": rating,
+            "numeric_score": normalized_score,
+            "score_breakdown": score_components,
+            "strengths": findings['strengths'],
+            "areas_for_improvement": findings['areas_for_improvement'],
+            "recommendations": findings['recommendations'],
+            "ai_insights": analysis_text
+        }
+        
+        return json.dumps(analysis)
+    except Exception as e:
+        print(f"Error in AI analysis: {str(e)}")
+        return json.dumps({
+            "score": rating,
+            "numeric_score": normalized_score,
+            "score_breakdown": score_components,
+            "strengths": findings['strengths'],
+            "areas_for_improvement": findings['areas_for_improvement'],
+            "recommendations": findings['recommendations'],
+            "ai_insights": "AI analysis currently unavailable"
+        })
+
 
 def get_repository_files(owner, repo):
     token = session.get('github_token')
@@ -282,9 +530,6 @@ def get_repository_files(owner, repo):
     return files_content
 
 def analyze_repository(repo_url):
-    #  if not (repo_url.startswith('http://github.com/') or repo_url.startswith('https://github.com/')):
-    #     raise Exception('Invalid GitHub repository URL')
-    
     token = session.get('github_token')
     if not token:
         raise Exception('Not authenticated')
@@ -300,15 +545,10 @@ def analyze_repository(repo_url):
     
     base_url = f'https://api.github.com/repos/{owner}/{repo}'
     
-    # Add print statements
     print("Analyzing repository:", repo_url)
     
     repo_response = requests.get(base_url, headers=headers)
     repo_info = repo_response.json()
-    
-    print("DEBUG - Repository Info:")
-    print(f"Open Issues Count: {repo_info.get('open_issues_count')}")
-    print(f"Full repo info: {repo_info}")
     
     languages = requests.get(f'{base_url}/languages', headers=headers).json()
     commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
@@ -317,22 +557,38 @@ def analyze_repository(repo_url):
     is_single_commit = total_commits == 1
     files_content = get_repository_files(owner, repo)
 
-    # Replace the github.get calls with requests:
-    watchers_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/watchers', headers=headers)
+    watchers_response = requests.get(f'{base_url}/watchers', headers=headers)
     watchers = watchers_response.json()
     
-    tags_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/tags', headers=headers)
+    tags_response = requests.get(f'{base_url}/tags', headers=headers)
     tags = tags_response.json()
     
-    collaborators_response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/collaborators', headers=headers)
+    collaborators_response = requests.get(f'{base_url}/collaborators', headers=headers)
     collaborators = collaborators_response.json()
     
-    # Debug
-    print("Repository Info:")
-    print(f"Name: {repo_info['name']}")
-    print(f"Open Issues Count: {repo_info['open_issues_count']}")
-    print(f"Raw repo info:", repo_info)  # This will print all available data
-
+    repo_data = {
+        'repository': {
+            'name': repo_info['name'],
+            'description': repo_info['description'],
+            'stars': repo_info['stargazers_count'],
+            'forks': repo_info['forks_count'],
+            'open_issues': repo_info['open_issues_count'],
+            'created_at': repo_info['created_at'],
+            'last_updated': repo_info['updated_at'],
+            'is_single_commit': is_single_commit
+        },
+        'commit_activity': {
+            'total_commits': total_commits,
+            'recent_commits': [{'sha': c['sha'][:7], 
+                              'message': c['commit']['message'],
+                              'date': c['commit']['author']['date']} 
+                             for c in commits[:5]]
+        },
+        'languages': languages,
+        'contributors': [{'login': c['login'], 
+                         'contributions': c['contributions']} 
+                        for c in contributors]
+    }
 
     ai_analysis = analyze_code_with_ai({
         'name': repo_info['name'],
@@ -348,41 +604,32 @@ def analyze_repository(repo_url):
         'open_issues_count': repo_info['open_issues_count']
     }, files_content)
     
-    ai_results = json.loads(ai_analysis)
+    plagiarism_results = plagiarism_analysis(repo_data, files_content)
     
-    return {
-        'repository': {
-            'name': repo_info['name'],
-            'description': repo_info['description'],
-            'stars': repo_info['stargazers_count'],
-            'forks': repo_info['forks_count'],
-            'open_issues': repo_info['open_issues_count'],
-            'created_at': repo_info['created_at'],
-            'last_updated': repo_info['updated_at'],
-            'is_single_commit': is_single_commit  # Add this
-        },
-        'commit_activity': {
-            'total_commits': total_commits,
-            'recent_commits': [{'sha': c['sha'][:7], 
-                              'message': c['commit']['message'],
-                              'date': c['commit']['author']['date']} 
-                             for c in commits[:5]]
-        },
-        'languages': languages,
-        'contributors': [{'login': c['login'], 
-                         'contributions': c['contributions']} 
-                        for c in contributors],
-        'ai_analysis': ai_results,
+    print("AI Analysis Results:", ai_analysis)
+    print("Plagiarism Analysis Results:", plagiarism_results)
+    
+    final_analysis = {
+        **repo_data,
+        'ai_analysis': json.loads(ai_analysis),
+        'plagiarism_analysis': plagiarism_results,
         'analysis_date': datetime.now(timezone.utc).isoformat()
     }
+    
+    print("Final Analysis Structure:", {
+        'keys': list(final_analysis.keys()),
+        'has_plagiarism': 'plagiarism_analysis' in final_analysis,
+        'plagiarism_type': type(final_analysis.get('plagiarism_analysis')).__name__
+    })
+    
+    return final_analysis
 
 
 @app.route('/')
 def index():
     if not github.authorized:
         return redirect(url_for('github.login'))
-    return redirect('http://localhost:3000')  # Redirect to React app after auth
-
+    return redirect('http://localhost:3000')
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
@@ -390,27 +637,31 @@ def analyze():
         return jsonify({'error': 'Not authorized'}), 401
     
     try:
+        # Github authentication check
         headers = {
             'Authorization': f'token {session["github_token"]}',
             'Accept': 'application/vnd.github.v3+json'
         }
         user_response = requests.get('https://api.github.com/user', headers=headers)
+        if user_response.status_code != 200:
+            return jsonify({'error': 'GitHub authentication failed'}), 401
+            
         user_data = user_response.json()
         username = user_data['login']
         
-        # Rest of your analyze function remains the same
-    
+        # Get repository URL
         repo_url = request.json.get('repo_url')
         if not repo_url:
             return jsonify({'error': 'Repository URL is required'}), 400
         
+        # Check cache
         repo_hash = get_repo_hash(repo_url)
-        
         existing_analysis = RepoAnalysis.query.filter_by(repo_hash=repo_hash).first()
         if existing_analysis:
             existing_analysis.access_count += 1
             db.session.commit()
             
+            print("Returning cached analysis")
             return jsonify({
                 'analysis': existing_analysis.analysis_data,
                 'cached': True,
@@ -418,29 +669,38 @@ def analyze():
                 'analyzed_at': existing_analysis.created_at.isoformat()
             })
         
-        try:
-            analysis = analyze_repository(repo_url)
+        # Perform new analysis
+        print(f"Starting new analysis for {repo_url}")
+        analysis = analyze_repository(repo_url)
+        
+        if not analysis:
+            return jsonify({'error': 'Analysis failed'}), 500
             
-            new_analysis = RepoAnalysis(
-                repo_url=repo_url,
-                repo_hash=repo_hash,
-                analysis_data=analysis,
-                created_by=username
-            )
-            db.session.add(new_analysis)
-            db.session.commit()
-            
-            return jsonify({
-                'analysis': analysis,
-                'cached': False,
-                'analyzed_by': username,
-                'analyzed_at': datetime.utcnow().isoformat()
-            })
-            
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        print("Analysis complete. Saving to database...")
+        new_analysis = RepoAnalysis(
+            repo_url=repo_url,
+            repo_hash=repo_hash,
+            analysis_data=analysis,
+            created_by=username
+        )
+        db.session.add(new_analysis)
+        db.session.commit()
+        
+        response_data = {
+            'analysis': analysis,
+            'cached': False,
+            'analyzed_by': username,
+            'analyzed_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        print("Sending response to frontend")
+        return jsonify(response_data)
+        
     except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        print(f"Error in analyze route: {str(e)}")
+        traceback.print_exc()  # Print full stack trace
+        return jsonify({'error': str(e)}), 500
+    
 
 @app.route('/api/stats')
 def get_stats():
@@ -464,14 +724,11 @@ def authorized():
         return redirect('http://localhost:3000')
     return redirect('http://localhost:3000')
 
-
-# Add these routes to your Flask app
 @app.route('/login/github')
 def github_login():
-    # Generate the GitHub authorization URL
     params = {
         'client_id': os.getenv('GITHUB_CLIENT_ID'),
-        'redirect_uri': 'http://localhost:5000/callback',  # Backend callback URL
+        'redirect_uri': 'http://localhost:5000/callback',
         'scope': 'repo user'
     }
     auth_url = f'https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}'
@@ -479,13 +736,11 @@ def github_login():
 
 @app.route('/callback')
 def github_callback():
-    # Get the code from GitHub
     code = request.args.get('code')
     if not code:
         return redirect('http://localhost:3000?error=access_denied')
 
     try:
-        # Exchange code for token using your worker
         response = requests.post(
             'https://github-auth-worker.avgtraderandyyy.workers.dev',
             json={'code': code},
@@ -496,10 +751,7 @@ def github_callback():
         if 'access_token' not in data:
             return redirect('http://localhost:3000?error=token_error')
 
-        # Store the token in session
         session['github_token'] = data['access_token']
-        
-        # Redirect back to React frontend
         return redirect('http://localhost:3000')
         
     except Exception as e:
@@ -524,11 +776,31 @@ def get_user():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Optional: Add logout endpoint
+
+@app.route('/api/clear-cache', methods=['POST'])
+def clear_cache():
+    try:
+        # Print current analyses
+        analyses = RepoAnalysis.query.all()
+        print("Current analyses in DB:", [
+            {
+                'url': a.repo_url,
+                'keys': list(a.analysis_data.keys()) if a.analysis_data else None
+            } for a in analyses
+        ])
+        
+        # Clear all analyses
+        RepoAnalysis.query.delete()
+        db.session.commit()
+        return jsonify({'message': 'Cache cleared successfully'})
+    except Exception as e:
+        print(f"Error clearing cache: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
+
 @app.route('/api/auth/logout')
 def logout():
     session.pop('github_token', None)
-    # Clear the entire session if you want to be thorough
     session.clear()
     return jsonify({'message': 'Logged out successfully'})
 
