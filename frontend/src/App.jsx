@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { GithubIcon, Github, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
 import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput } from './matrix-components';
+import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown"
 
 
 const formatDate = (dateString) => {
@@ -40,6 +42,31 @@ const ScoreBadge = ({ score, numericScore }) => {
 const AIAnalysis = ({ aiAnalysis }) => {
   if (!aiAnalysis) return null;
 
+  const [insightsText, setInsightsText] = useState("");
+  const [showGrade, setShowGrade] = useState(false);
+
+  useEffect(() => {
+    if (!aiAnalysis.ai_insights) return;
+    
+    setInsightsText(""); // Reset on new data
+    setShowGrade(false);
+
+    // First show the grade
+    setTimeout(() => setShowGrade(true), 500);
+    
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < aiAnalysis.ai_insights.length) {
+        setInsightsText((prev) => prev + aiAnalysis.ai_insights[index]);
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 20); // Adjust speed (lower = faster)
+
+    return () => clearInterval(interval);
+  }, [aiAnalysis.ai_insights]);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
       <div className="flex items-center justify-between mb-6">
@@ -50,7 +77,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
         <ScoreBadge score={aiAnalysis.score} numericScore={aiAnalysis.numeric_score} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {Object.entries(aiAnalysis.score_breakdown).map(([category, score]) => (
           <div key={category} className="bg-green-50 p-4 rounded-lg">
             <div className="text-sm text-green-800 capitalize">{category.replace('_', ' ')}</div>
@@ -63,14 +90,51 @@ const AIAnalysis = ({ aiAnalysis }) => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
 
-      {/* AI Insights Section */}
+
+      {/* Matrix-style Grade Display */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
+        className="mb-6 flex justify-center"
+      >
+        <div className="relative">
+          <div className="absolute inset-0 bg-green-200 opacity-20 animate-pulse rounded-lg"></div>
+          <div className="relative bg-black bg-opacity-90 text-green-400 px-8 py-4 rounded-lg border border-green-400 font-mono">
+            <div className="text-xs mb-1 text-center">FINAL GRADE</div>
+            <div className="text-4xl font-bold text-center tracking-wider">
+              {aiAnalysis.grade.split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="inline-block"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* AI Insights Section with Typewriter Effect */}
       {aiAnalysis.ai_insights && (
         <div className="mb-6">
           <h4 className="font-medium text-green-900 mb-3">AI Insights</h4>
-          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap">
-            {aiAnalysis.ai_insights}
+          <h3 className="font-medium text-green-900 mb-3">{aiAnalysis.grade}</h3>
+          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap font-mono">
+            <motion.span
+              className="text-gray-700"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <ReactMarkdown>{insightsText}</ReactMarkdown>
+            </motion.span>
+            <span className="animate-ping">|</span> {/* Blinking Cursor */}
           </div>
         </div>
       )}
@@ -212,7 +276,6 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
         </div>
           
         <AIAnalysis aiAnalysis={analysis.ai_analysis} />
-        <PlagiarismAnalysis analysis={analysis} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
