@@ -53,208 +53,207 @@ class RepoAnalysis(db.Model):
 def get_repo_hash(repo_url):
     return hashlib.md5(repo_url.encode()).hexdigest()
 
-def plagiarism_analysis(repo_info, files_content):
-    print("Starting plagiarism analysis...")
+# def plagiarism_analysis(repo_info, files_content):
+#     print("Starting plagiarism analysis...")
     
-    # Initialize variables first
-    commit_patterns = []
-    red_flags = []
-    contributor_count = len(repo_info.get('contributors', []))
-    repo_age_days = 0
-    commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
-    time_span_days = 0
+#     # Initialize variables first
+#     commit_patterns = []
+#     red_flags = []
+#     contributor_count = len(repo_info.get('contributors', []))
+#     repo_age_days = 0
+#     commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
+#     time_span_days = 0
 
-    # Calculate repository age early
-    try:
-        repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
-        repo_age_days = (now - repo_created).days
+#     # Calculate repository age early
+#     try:
+#         repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+#         now = datetime.now(timezone.utc)
+#         repo_age_days = (now - repo_created).days
         
-        if repo_age_days <= 7:
-            red_flags.append({
-                "severity": "high",
-                "description": "Repository is less than a week old - typical of scam projects"
-            })
-        elif repo_age_days <= 30:
-            red_flags.append({
-                "severity": "medium",
-                "description": "Repository is less than a month old - exercise caution"
-            })
-    except Exception as e:
-        print(f"Error calculating repository age: {str(e)}")
-        repo_age_days = 0
+#         if repo_age_days <= 7:
+#             red_flags.append({
+#                 "severity": "high",
+#                 "description": "Repository is less than a week old - typical of scam projects"
+#             })
+#         elif repo_age_days <= 30:
+#             red_flags.append({
+#                 "severity": "medium",
+#                 "description": "Repository is less than a month old - exercise caution"
+#             })
+#     except Exception as e:
+#         print(f"Error calculating repository age: {str(e)}")
+#         repo_age_days = 0
 
-    # Get OpenRouter API key from environment
-    openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
-    if not openrouter_api_key:
-        print("WARNING: No OpenRouter API key found!")
-        return None
+#     # Get OpenRouter API key from environment
+#     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
+#     if not openrouter_api_key:
+#         print("WARNING: No OpenRouter API key found!")
+#         return None
 
-    print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")
+#     print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")
 
-    # Analyze commit patterns
-    if len(commits) < 2:
-        pattern = "Repository has very few commits which is highly suspicious"
-        commit_patterns.append(pattern)
-        red_flags.append({"severity": "high", "description": pattern})
+#     # Analyze commit patterns
+#     if len(commits) < 2:
+#         pattern = "Repository has very few commits which is highly suspicious"
+#         commit_patterns.append(pattern)
+#         red_flags.append({"severity": "high", "description": pattern})
     
-    # Sort and analyze commits
-    if commits:
-        try:
-            sorted_commits = sorted(commits, key=lambda x: x['date'])
-            first_commit = datetime.strptime(sorted_commits[0]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-            last_commit = datetime.strptime(sorted_commits[-1]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-            time_span_days = (last_commit - first_commit).days
+#     # Sort and analyze commits
+#     if commits:
+#         try:
+#             sorted_commits = sorted(commits, key=lambda x: x['date'])
+#             first_commit = datetime.strptime(sorted_commits[0]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+#             last_commit = datetime.strptime(sorted_commits[-1]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+#             time_span_days = (last_commit - first_commit).days
             
-            if time_span_days <= 2:
-                pattern = "All commits were made within 2 days - highly suspicious for copied code"
-                commit_patterns.append(pattern)
-                red_flags.append({"severity": "high", "description": pattern})
-            elif time_span_days <= 7:
-                pattern = "All commits were made within 7 days - potentially suspicious activity"
-                commit_patterns.append(pattern)
-                red_flags.append({"severity": "medium", "description": pattern})
-        except Exception as e:
-            print(f"Error analyzing commit dates: {str(e)}")
+#             if time_span_days <= 2:
+#                 pattern = "All commits were made within 2 days - highly suspicious for copied code"
+#                 commit_patterns.append(pattern)
+#                 red_flags.append({"severity": "high", "description": pattern})
+#             elif time_span_days <= 7:
+#                 pattern = "All commits were made within 7 days - potentially suspicious activity"
+#                 commit_patterns.append(pattern)
+#                 red_flags.append({"severity": "medium", "description": pattern})
+#         except Exception as e:
+#             print(f"Error analyzing commit dates: {str(e)}")
     
-    # Analyze commit messages
-    commit_messages = [c['message'] for c in commits]
-    unique_messages = set(commit_messages)
-    if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3:
-        pattern = "Low variety in commit messages suggests automated or bulk commits"
-        commit_patterns.append(pattern)
-        red_flags.append({"severity": "medium", "description": pattern})
+#     # Analyze commit messages
+#     commit_messages = [c['message'] for c in commits]
+#     unique_messages = set(commit_messages)
+#     if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3:
+#         pattern = "Low variety in commit messages suggests automated or bulk commits"
+#         commit_patterns.append(pattern)
+#         red_flags.append({"severity": "medium", "description": pattern})
     
-    # Analyze contributor patterns
-    total_code = sum(repo_info.get('languages', {}).values())
-    code_per_contributor = total_code / max(contributor_count, 1)
+#     # Analyze contributor patterns
+#     total_code = sum(repo_info.get('languages', {}).values())
+#     code_per_contributor = total_code / max(contributor_count, 1)
     
-    if code_per_contributor > 1000000 and contributor_count < 3:
-        pattern = "Large codebase with suspiciously few contributors"
-        commit_patterns.append(pattern)
-        red_flags.append({"severity": "high", "description": pattern})
+#     if code_per_contributor > 1000000 and contributor_count < 3:
+#         pattern = "Large codebase with suspiciously few contributors"
+#         commit_patterns.append(pattern)
+#         red_flags.append({"severity": "high", "description": pattern})
 
-    # Prepare data for AI analysis
-    analysis_prompt = f"""You are a crypto coin trader that seeks out coins with software projects. These software projects often publish to github. There are a lot of scam projects that steal code. I am asking you to review the repository and provide your score from Beware, Average, Good with explanation.
+#     # Prepare data for AI analysis
+#     analysis_prompt = f"""You are a crypto coin trader that seeks out coins with software projects. These software projects often publish to github. There are a lot of scam projects that steal code. I am asking you to review the repository and provide your score from Beware, Average, Good with explanation.
 
-                Repository Information:
-                - Name: {repo_info['repository']['name']}
-                - Description: {repo_info['repository']['description']}
-                - Created: {repo_info['repository']['created_at']}
-                - Stars: {repo_info['repository']['stars']}
-                - Forks: {repo_info['repository']['forks']}
-                - Contributors: {contributor_count}
-                - Total Commits: {repo_info['commit_activity']['total_commits']}
-                - Repository Age: {repo_age_days} days
+#                 Repository Information:
+#                 - Name: {repo_info['repository']['name']}
+#                 - Description: {repo_info['repository']['description']}
+#                 - Created: {repo_info['repository']['created_at']}
+#                 - Stars: {repo_info['repository']['stars']}
+#                 - Forks: {repo_info['repository']['forks']}
+#                 - Contributors: {contributor_count}
+#                 - Total Commits: {repo_info['commit_activity']['total_commits']}
+#                 - Repository Age: {repo_age_days} days
 
-                Suspicious Patterns Found:
-                {chr(10).join([f"- {pattern}" for pattern in commit_patterns])}
+#                 Suspicious Patterns Found:
+#                 {chr(10).join([f"- {pattern}" for pattern in commit_patterns])}
 
-                Recent Commits:
-                {chr(10).join([f"- {commit['date']}: {commit['message']}" for commit in commits[:5]])}
+#                 Recent Commits:
+#                 {chr(10).join([f"- {commit['date']}: {commit['message']}" for commit in commits[:5]])}
 
-                Please analyze for:
-                1. Signs of plagiarized or copied code
-                2. Poor code practices (exposed API keys, credentials)
-                3. Repository history and commit patterns
-                4. Signs of potential scam or fraudulent project
+#                 Please analyze for:
+#                 1. Signs of plagiarized or copied code
+#                 2. Poor code practices (exposed API keys, credentials)
+#                 3. Repository history and commit patterns
+#                 4. Signs of potential scam or fraudulent project
 
-                Pay special attention to:
-                - Brand new repositories or those with all commits within 1-2 days
-                - Exposed sensitive information in code
-                - Signs of copied/stolen code
-                - Suspicious commit patterns
+#                 Pay special attention to:
+#                 - Brand new repositories or those with all commits within 1-2 days
+#                 - Exposed sensitive information in code
+#                 - Signs of copied/stolen code
+#                 - Suspicious commit patterns
 
-                Provide a rating (Beware/Average/Good) with detailed explanation."""
+#                 Provide a rating (Beware/Average/Good) with detailed explanation."""
     
-    headers = {
-        "Authorization": f"Bearer {openrouter_api_key}",
-        "Content-Type": "application/json",
-        "X-Title": "GitHub Repository Analyzer"
-    }
+#     headers = {
+#         "Authorization": f"Bearer {openrouter_api_key}",
+#         "Content-Type": "application/json",
+#         "X-Title": "GitHub Repository Analyzer"
+#     }
 
-    try:
-        print("Calling OpenRouter API...")
-        response = requests.post(
-            "https://api.openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json={
-                "model": "anthropic/claude-3-opus-20240229",
-                "messages": [{"role": "user", "content": analysis_prompt}],
-                "max_tokens": 1000
-            }
-        )
-        print("OpenRouter API Response:", response.text)
+#     try:
+#         print("Calling OpenRouter API...")
+#         response = requests.post(
+#             "https://api.openrouter.ai/api/v1/chat/completions",
+#             headers=headers,
+#             json={
+#                 "model": "anthropic/claude-3-opus-20240229",
+#                 "messages": [{"role": "user", "content": analysis_prompt}],
+#                 "max_tokens": 1000
+#             }
+#         )
+#         print("OpenRouter API Response:", response.text)
         
-        if not response.ok:
-            print(f"API request failed: {response.status_code} - {response.text}")
-            return None
+#         if not response.ok:
+#             print(f"API request failed: {response.status_code} - {response.text}")
+#             return None
 
-        ai_response = response.json()
-        analysis_text = ai_response['choices'][0]['message']['content']
+#         ai_response = response.json()
+#         analysis_text = ai_response['choices'][0]['message']['content']
         
-        # Extract rating from analysis
-        rating = "Average"  # Default
-        if "beware" in analysis_text.lower():
-            rating = "Beware"
-            severity = "high"
-        elif "good" in analysis_text.lower():
-            rating = "Good"
-            severity = "low"
-        else:
-            severity = "medium"
+#         # Extract rating from analysis
+#         rating = "Average"  # Default
+#         if "beware" in analysis_text.lower():
+#             rating = "Beware"
+#             severity = "high"
+#         elif "good" in analysis_text.lower():
+#             rating = "Good"
+#             severity = "low"
+#         else:
+#             severity = "medium"
         
-        # Calculate risk score
-        risk_factors = {
-            'commit_timespan': 30 if time_span_days <= 2 else (20 if time_span_days <= 7 else 0),
-            'commit_variety': 20 if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3 else 0,
-            'contributor_ratio': 30 if code_per_contributor > 1000000 and contributor_count < 3 else 0,
-            'commit_count': 20 if len(commits) < 2 else 0,
-            'repo_age': 20 if repo_age_days <= 7 else (10 if repo_age_days <= 30 else 0)
-        }
+#         # Calculate risk score
+#         risk_factors = {
+#             'commit_timespan': 30 if time_span_days <= 2 else (20 if time_span_days <= 7 else 0),
+#             'commit_variety': 20 if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3 else 0,
+#             'contributor_ratio': 30 if code_per_contributor > 1000000 and contributor_count < 3 else 0,
+#             'commit_count': 20 if len(commits) < 2 else 0,
+#             'repo_age': 20 if repo_age_days <= 7 else (10 if repo_age_days <= 30 else 0)
+#         }
         
-        risk_score = sum(risk_factors.values())
+#         risk_score = sum(risk_factors.values())
         
-        # Generate recommendations based on findings
-        recommendations = [
-            "Investigate commit history for bulk copying of code",
-            "Review git logs for signs of repository copying",
-            "Review contributor permissions and access patterns",
-            "Verify authenticity of large code contributions"
-        ]
+#         # Generate recommendations based on findings
+#         recommendations = [
+#             "Investigate commit history for bulk copying of code",
+#             "Review git logs for signs of repository copying",
+#             "Review contributor permissions and access patterns",
+#             "Verify authenticity of large code contributions"
+#         ]
         
-        if repo_age_days <= 30:
-            recommendations.append("Wait for project to establish longer history before investing")
-        if time_span_days <= 7:
-            recommendations.append("Investigate why all commits were made in such a short timeframe")
+#         if repo_age_days <= 30:
+#             recommendations.append("Wait for project to establish longer history before investing")
+#         if time_span_days <= 7:
+#             recommendations.append("Investigate why all commits were made in such a short timeframe")
         
-        result = {
-            "repository_name": repo_info['repository']['name'],
-            "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
-            "risk_assessment": {
-                "score": risk_score,
-                "risk_level": rating,
-                "red_flags": red_flags,
-                "ai_analysis": analysis_text
-            },
-            "recommendations": recommendations,
-            "metadata": {
-                "total_commits": repo_info['commit_activity']['total_commits'],
-                "languages_used": list(repo_info.get('languages', {}).keys()),
-                "contributor_count": contributor_count,
-                "repository_age_days": repo_age_days
-            }
-        }
-        print("Plagiarism analysis result:", result)
-        return result
+#         result = {
+#             "repository_name": repo_info['repository']['name'],
+#             "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
+#             "risk_assessment": {
+#                 "score": risk_score,
+#                 "risk_level": rating,
+#                 "red_flags": red_flags,
+#                 "ai_analysis": analysis_text
+#             },
+#             "recommendations": recommendations,
+#             "metadata": {
+#                 "total_commits": repo_info['commit_activity']['total_commits'],
+#                 "languages_used": list(repo_info.get('languages', {}).keys()),
+#                 "contributor_count": contributor_count,
+#                 "repository_age_days": repo_age_days
+#             }
+#         }
+#         print("Plagiarism analysis result:", result)
+#         return result
     
-    except Exception as e:
-        print(f"Error in plagiarism analysis: {str(e)}")
-        traceback.print_exc()
-        return None
+#     except Exception as e:
+#         print(f"Error in plagiarism analysis: {str(e)}")
+#         traceback.print_exc()
+#         return None    
     
-    
-def analyze_code_with_ai(repo_info, files_content):
+def analyze_code_with_ai(repo_info, files_content, url):
     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
     score_components = {}
     total_score = 0
@@ -429,31 +428,30 @@ def analyze_code_with_ai(repo_info, files_content):
     else:
         rating = "Bad"
 
-    analysis_prompt = f"""You are a software quality analyst. Analyze this GitHub repository and provide a detailed quality assessment.
+    analysis_prompt = f"""
+        We are having a casual, informal conversation. Be humorous.
+        You are a crypto coin trader that seeks out coins with software projects.
+        There are a lot of scam projects that steal code or do not work. 
+        Please look for plagiarized code, poor code practices such as exposed API keys (Keys that are not empty or placeholders), and the history of the repository.
+        Repositories that are brand new or have all their commits within a week indicate scam likely projects.
 
-            Repository Information:
-            - Name: {repo_info['name']}
-            - Description: {repo_info['description']}
-            - Stars: {repo_info['stars']}
-            - Forks: {repo_info['forks']}
-            - Issues: {repo_info['open_issues_count']}
+        Here is a baseline:
+        https://github.com/zxvghy/SOLpanion-extension is a score of Beware.
+        https://github.com/sgAIqO0psl51xk/coinseek is a score of Average.
+        https://github.com/elizaOS/eliza is a score of Good.
 
-            Current Metrics:
-            Documentation Score: {score_components['documentation']}/1
-            Project Structure: {score_components.get('structure', 0)}/1
-            Community Engagement: {score_components.get('engagement', 0)}/1
-            Maintenance: {score_components.get('maintenance', 0)}/1
-            Issues Management: {score_components.get('issues', 0)}/1
-            Project Maturity: {score_components.get('maturity', 0)}/1
+        Here is the repository:
+        {url} 
 
-            Provide a comprehensive analysis of:
-            1. Code quality and organization
-            2. Project structure and best practices
-            3. Community engagement and project health
-            4. Development patterns and maintenance
-            5. Overall project viability
+        Start with a grade: Beware, Average, and Good. 
 
-            Include specific observations about strengths and areas needing improvement."""
+        Provide a brief but cohesive analysis of: 
+        1. Plagiarism or theft of code.
+        2. Code quality, structure, and practices. 
+        3. Overall engagement, activity, and community sentiment.
+        
+        Provide final thoughts.
+"""
     
     response = None
     try:
@@ -464,7 +462,7 @@ def analyze_code_with_ai(repo_info, files_content):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "anthropic/claude-3-opus-20240229",
+                "model": "openai/chatgpt-4o-latest",
                 "messages": [{"role": "user", "content": analysis_prompt}]
             }
         )
@@ -602,17 +600,13 @@ def analyze_repository(repo_url):
         'created_at': repo_info['created_at'],
         'last_updated': repo_info['updated_at'],
         'open_issues_count': repo_info['open_issues_count']
-    }, files_content)
-    
-    plagiarism_results = plagiarism_analysis(repo_data, files_content)
-    
+    }, files_content, url = repo_url )
+        
     print("AI Analysis Results:", ai_analysis)
-    print("Plagiarism Analysis Results:", plagiarism_results)
     
     final_analysis = {
         **repo_data,
         'ai_analysis': json.loads(ai_analysis),
-        'plagiarism_analysis': plagiarism_results,
         'analysis_date': datetime.now(timezone.utc).isoformat()
     }
     
