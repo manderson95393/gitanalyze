@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { GithubIcon, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
+import { GithubIcon, Github, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
 import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput } from './matrix-components';
 
@@ -112,23 +112,28 @@ const LandingPage = ({ onLogin }) => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden">
       <MatrixRainComponent />
       
-      <GlowingCardComponent className="text-center space-y-16 p-8 max-w-2xl">
-        <div className="flex items-center justify-center space-x-4">
-          <Search className="w-12 h-12 text-green-400" />
-          <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
-        </div>
-        
-        <p className="text-xl text-green-300 font-mono">
-          Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
-        </p>
-        
-        <div>
-          <CyberButton onClick={() => window.location.href = "http://localhost:5000/login/github"}>
-            <div className="flex items-center space-x-3">
-              <GithubIcon className="w-6 h-6" />
-              <span>Login with GitHub</span>
-            </div>
-          </CyberButton>
+      <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
+        <div className="space-y-12">
+          <div className="flex items-center justify-center space-x-4">
+            <Search className="w-10 h-10 text-green-400" />
+            <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
+          </div>
+          
+          <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
+            Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
+          </p>
+          
+          <div className="pt-4">
+            <CyberButton 
+              onClick={() => window.location.href = "http://localhost:5000/login/github"}
+              className="hover:scale-105 transition-transform duration-200"
+            >
+              <div className="flex items-center justify-center space-x-3 px-6 py-3">
+                <Github className="w-6 h-6" />
+                <span>Login with GitHub</span>
+              </div>
+            </CyberButton>
+          </div>
         </div>
       </GlowingCardComponent>
     </div>
