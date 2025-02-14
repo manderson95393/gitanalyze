@@ -270,14 +270,13 @@ def analyze_code_with_ai(repo_info, files_content, url):
         ai_response = response.json()
         analysis_text = ai_response['choices'][0]['message']['content']
         result = "\n".join(analysis_text[1:])
-        lines = analysis_text.split("\n")
         
         print(analysis_text)
-        if ": Beware" in lines[0]:
+        if "Beware" in analysis_text[:20]:
             grade = "Beware"
-        elif ": Average" in lines[0]:
+        elif "Average" in analysis_text[:20]:
             grade = "Average"
-        elif ": Good" in lines[0]:
+        elif "Good" in analysis_text[:20]:
             grade = "Good"
         else:
             grade = "Average"
