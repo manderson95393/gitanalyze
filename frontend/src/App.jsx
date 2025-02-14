@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GithubIcon, Github, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
-import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput } from './matrix-components';
+import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown"
 
@@ -93,7 +93,8 @@ const AIAnalysis = ({ aiAnalysis }) => {
       </div> */}
 
 
-      {/* Matrix-style Grade Display */}
+      {/* Matrix-style Grade Display 
+      ITERATION 1 -- REMOVE
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
@@ -104,7 +105,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
           <div className="relative bg-black bg-opacity-90 text-green-400 px-8 py-4 rounded-lg border border-green-400 font-mono">
             <div className="text-xs mb-1 text-center">FINAL GRADE</div>
             <div className="text-4xl font-bold text-center tracking-wider">
-              {aiAnalysis.grade.split('').map((char, i) => (
+            {(aiAnalysis.grade ?? '').split('').map((char, i) => (
                 <motion.span
                   key={i}
                   initial={{ opacity: 0, y: -20 }}
@@ -119,6 +120,18 @@ const AIAnalysis = ({ aiAnalysis }) => {
           </div>
         </div>
       </motion.div>
+      */}
+
+
+      {/* Matrix-style Grade Display 
+      ITERATION 2 -- REMOVE */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
+        className="mb-6 flex justify-center"
+      >
+      <MatrixGrade grade={aiAnalysis.grade} />
+    </motion.div>
 
       {/* AI Insights Section with Typewriter Effect */}
       {aiAnalysis.ai_insights && (
