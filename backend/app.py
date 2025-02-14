@@ -52,206 +52,6 @@ class RepoAnalysis(db.Model):
 
 def get_repo_hash(repo_url):
     return hashlib.md5(repo_url.encode()).hexdigest()
-
-# def plagiarism_analysis(repo_info, files_content):
-#     print("Starting plagiarism analysis...")
-    
-#     # Initialize variables first
-#     commit_patterns = []
-#     red_flags = []
-#     contributor_count = len(repo_info.get('contributors', []))
-#     repo_age_days = 0
-#     commits = repo_info.get('commit_activity', {}).get('recent_commits', [])
-#     time_span_days = 0
-
-#     # Calculate repository age early
-#     try:
-#         repo_created = datetime.strptime(repo_info['repository']['created_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-#         now = datetime.now(timezone.utc)
-#         repo_age_days = (now - repo_created).days
-        
-#         if repo_age_days <= 7:
-#             red_flags.append({
-#                 "severity": "high",
-#                 "description": "Repository is less than a week old - typical of scam projects"
-#             })
-#         elif repo_age_days <= 30:
-#             red_flags.append({
-#                 "severity": "medium",
-#                 "description": "Repository is less than a month old - exercise caution"
-#             })
-#     except Exception as e:
-#         print(f"Error calculating repository age: {str(e)}")
-#         repo_age_days = 0
-
-#     # Get OpenRouter API key from environment
-#     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
-#     if not openrouter_api_key:
-#         print("WARNING: No OpenRouter API key found!")
-#         return None
-
-#     print(f"Using OpenRouter API key: {openrouter_api_key[:4]}...")
-
-#     # Analyze commit patterns
-#     if len(commits) < 2:
-#         pattern = "Repository has very few commits which is highly suspicious"
-#         commit_patterns.append(pattern)
-#         red_flags.append({"severity": "high", "description": pattern})
-    
-#     # Sort and analyze commits
-#     if commits:
-#         try:
-#             sorted_commits = sorted(commits, key=lambda x: x['date'])
-#             first_commit = datetime.strptime(sorted_commits[0]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-#             last_commit = datetime.strptime(sorted_commits[-1]['date'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
-#             time_span_days = (last_commit - first_commit).days
-            
-#             if time_span_days <= 2:
-#                 pattern = "All commits were made within 2 days - highly suspicious for copied code"
-#                 commit_patterns.append(pattern)
-#                 red_flags.append({"severity": "high", "description": pattern})
-#             elif time_span_days <= 7:
-#                 pattern = "All commits were made within 7 days - potentially suspicious activity"
-#                 commit_patterns.append(pattern)
-#                 red_flags.append({"severity": "medium", "description": pattern})
-#         except Exception as e:
-#             print(f"Error analyzing commit dates: {str(e)}")
-    
-#     # Analyze commit messages
-#     commit_messages = [c['message'] for c in commits]
-#     unique_messages = set(commit_messages)
-#     if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3:
-#         pattern = "Low variety in commit messages suggests automated or bulk commits"
-#         commit_patterns.append(pattern)
-#         red_flags.append({"severity": "medium", "description": pattern})
-    
-#     # Analyze contributor patterns
-#     total_code = sum(repo_info.get('languages', {}).values())
-#     code_per_contributor = total_code / max(contributor_count, 1)
-    
-#     if code_per_contributor > 1000000 and contributor_count < 3:
-#         pattern = "Large codebase with suspiciously few contributors"
-#         commit_patterns.append(pattern)
-#         red_flags.append({"severity": "high", "description": pattern})
-
-#     # Prepare data for AI analysis
-#     analysis_prompt = f"""You are a crypto coin trader that seeks out coins with software projects. These software projects often publish to github. There are a lot of scam projects that steal code. I am asking you to review the repository and provide your score from Beware, Average, Good with explanation.
-
-#                 Repository Information:
-#                 - Name: {repo_info['repository']['name']}
-#                 - Description: {repo_info['repository']['description']}
-#                 - Created: {repo_info['repository']['created_at']}
-#                 - Stars: {repo_info['repository']['stars']}
-#                 - Forks: {repo_info['repository']['forks']}
-#                 - Contributors: {contributor_count}
-#                 - Total Commits: {repo_info['commit_activity']['total_commits']}
-#                 - Repository Age: {repo_age_days} days
-
-#                 Suspicious Patterns Found:
-#                 {chr(10).join([f"- {pattern}" for pattern in commit_patterns])}
-
-#                 Recent Commits:
-#                 {chr(10).join([f"- {commit['date']}: {commit['message']}" for commit in commits[:5]])}
-
-#                 Please analyze for:
-#                 1. Signs of plagiarized or copied code
-#                 2. Poor code practices (exposed API keys, credentials)
-#                 3. Repository history and commit patterns
-#                 4. Signs of potential scam or fraudulent project
-
-#                 Pay special attention to:
-#                 - Brand new repositories or those with all commits within 1-2 days
-#                 - Exposed sensitive information in code
-#                 - Signs of copied/stolen code
-#                 - Suspicious commit patterns
-
-#                 Provide a rating (Beware/Average/Good) with detailed explanation."""
-    
-#     headers = {
-#         "Authorization": f"Bearer {openrouter_api_key}",
-#         "Content-Type": "application/json",
-#         "X-Title": "GitHub Repository Analyzer"
-#     }
-
-#     try:
-#         print("Calling OpenRouter API...")
-#         response = requests.post(
-#             "https://api.openrouter.ai/api/v1/chat/completions",
-#             headers=headers,
-#             json={
-#                 "model": "anthropic/claude-3-opus-20240229",
-#                 "messages": [{"role": "user", "content": analysis_prompt}],
-#                 "max_tokens": 1000
-#             }
-#         )
-#         print("OpenRouter API Response:", response.text)
-        
-#         if not response.ok:
-#             print(f"API request failed: {response.status_code} - {response.text}")
-#             return None
-
-#         ai_response = response.json()
-#         analysis_text = ai_response['choices'][0]['message']['content']
-        
-#         # Extract rating from analysis
-#         rating = "Average"  # Default
-#         if "beware" in analysis_text.lower():
-#             rating = "Beware"
-#             severity = "high"
-#         elif "good" in analysis_text.lower():
-#             rating = "Good"
-#             severity = "low"
-#         else:
-#             severity = "medium"
-        
-#         # Calculate risk score
-#         risk_factors = {
-#             'commit_timespan': 30 if time_span_days <= 2 else (20 if time_span_days <= 7 else 0),
-#             'commit_variety': 20 if len(commit_messages) > 0 and len(unique_messages) / len(commit_messages) < 0.3 else 0,
-#             'contributor_ratio': 30 if code_per_contributor > 1000000 and contributor_count < 3 else 0,
-#             'commit_count': 20 if len(commits) < 2 else 0,
-#             'repo_age': 20 if repo_age_days <= 7 else (10 if repo_age_days <= 30 else 0)
-#         }
-        
-#         risk_score = sum(risk_factors.values())
-        
-#         # Generate recommendations based on findings
-#         recommendations = [
-#             "Investigate commit history for bulk copying of code",
-#             "Review git logs for signs of repository copying",
-#             "Review contributor permissions and access patterns",
-#             "Verify authenticity of large code contributions"
-#         ]
-        
-#         if repo_age_days <= 30:
-#             recommendations.append("Wait for project to establish longer history before investing")
-#         if time_span_days <= 7:
-#             recommendations.append("Investigate why all commits were made in such a short timeframe")
-        
-#         result = {
-#             "repository_name": repo_info['repository']['name'],
-#             "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
-#             "risk_assessment": {
-#                 "score": risk_score,
-#                 "risk_level": rating,
-#                 "red_flags": red_flags,
-#                 "ai_analysis": analysis_text
-#             },
-#             "recommendations": recommendations,
-#             "metadata": {
-#                 "total_commits": repo_info['commit_activity']['total_commits'],
-#                 "languages_used": list(repo_info.get('languages', {}).keys()),
-#                 "contributor_count": contributor_count,
-#                 "repository_age_days": repo_age_days
-#             }
-#         }
-#         print("Plagiarism analysis result:", result)
-#         return result
-    
-#     except Exception as e:
-#         print(f"Error in plagiarism analysis: {str(e)}")
-#         traceback.print_exc()
-#         return None    
     
 def analyze_code_with_ai(repo_info, files_content, url):
     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
@@ -429,7 +229,7 @@ def analyze_code_with_ai(repo_info, files_content, url):
         rating = "Bad"
 
     analysis_prompt = f"""
-        We are having a casual, informal conversation. Be humorous.
+        We are having a casual, informal conversation. Be subtly humorous.
         You are a crypto coin trader that seeks out coins with software projects.
         There are a lot of scam projects that steal code or do not work. 
         Please look for plagiarized code, poor code practices such as exposed API keys (Keys that are not empty or placeholders), and the history of the repository.
@@ -469,7 +269,19 @@ def analyze_code_with_ai(repo_info, files_content, url):
         
         ai_response = response.json()
         analysis_text = ai_response['choices'][0]['message']['content']
+        result = "\n".join(analysis_text[1:])
+        lines = analysis_text.split("\n")
         
+        print(analysis_text)
+        if ": Beware" in lines[0]:
+            grade = "Beware"
+        elif ": Average" in lines[0]:
+            grade = "Average"
+        elif ": Good" in lines[0]:
+            grade = "Good"
+        else:
+            grade = "Average"
+
         analysis = {
             "score": rating,
             "numeric_score": normalized_score,
@@ -477,7 +289,8 @@ def analyze_code_with_ai(repo_info, files_content, url):
             "strengths": findings['strengths'],
             "areas_for_improvement": findings['areas_for_improvement'],
             "recommendations": findings['recommendations'],
-            "ai_insights": analysis_text
+            "ai_insights": analysis_text,
+            "grade": grade
         }
         
         return json.dumps(analysis)
