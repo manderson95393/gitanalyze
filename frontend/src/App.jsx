@@ -43,98 +43,151 @@ const AIAnalysis = ({ aiAnalysis }) => {
   if (!aiAnalysis) return null;
 
   const [insightsText, setInsightsText] = useState("");
-  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
 
   useEffect(() => {
     if (!aiAnalysis.ai_insights) return;
     
     setInsightsText(""); // Reset on new data
-    setIsTypingComplete(false);
     setShowGrade(false);
-
+  
     // First show the grade
     setTimeout(() => setShowGrade(true), 500);
     
-    let currentText = "";
-    const totalLength = aiAnalysis.ai_insights.length;
+    // Log the original text for debugging
+    console.log("Before clean text:", aiAnalysis.ai_insights);
+    
+    let processedInsights = aiAnalysis.ai_insights
+      .replace(/[\s\S]*?(?=1\. \*\*Plagiarism)/, "")
+      .trim();
+  
+    
+    // Log the processed text
+    console.log("Cleaned text:", processedInsights);
+  
     let index = 0;
-
     const interval = setInterval(() => {
-      if (index < totalLength) {
-        currentText += aiAnalysis.ai_insights[index];
-        setInsightsText(currentText);
+      if (index < processedInsights.length) {
+        setInsightsText((prev) => prev + processedInsights[index]);
         index++;
       } else {
-        setIsTypingComplete(true);
         clearInterval(interval);
       }
-    }, 15);
-
+    }, 20);
+  
     return () => clearInterval(interval);
   }, [aiAnalysis.ai_insights]);
 
   return (
-    <div>
-      {/* Matrix Grade Display */}
+    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <Brain className="w-6 h-6 text-green-600" />
+          <h3 className="text-xl font-semibold text-green-900">AI Analysis</h3>
+        </div>
+        <ScoreBadge score={aiAnalysis.score} numericScore={aiAnalysis.numeric_score} />
+      </div>
+
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {Object.entries(aiAnalysis.score_breakdown).map(([category, score]) => (
+          <div key={category} className="bg-green-50 p-4 rounded-lg">
+            <div className="text-sm text-green-800 capitalize">{category.replace('_', ' ')}</div>
+            <div className="text-lg font-semibold text-green-900">{(score * 5).toFixed(1)}/5</div>
+            <div className="w-full bg-green-200 rounded-full h-2.5">
+              <div 
+                className="bg-green-600 h-2.5 rounded-full" 
+                style={{ width: `${score * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div> */}
+
+
+      {/* Matrix-style Grade Display 
+      ITERATION 1 -- REMOVE
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
         className="mb-6 flex justify-center"
       >
-        <MatrixGrade grade={aiAnalysis.grade} />
-      </motion.div>
-
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <Brain className="w-6 h-6 text-green-400" />
-            <h3 className="text-xl font-semibold text-white">AI Analysis</h3>
-          </div>
-          <ScoreBadge score={aiAnalysis.score} numericScore={aiAnalysis.numeric_score} />
-        </div>
-
-        {/* AI Insights Section with Typewriter Effect */}
-        {aiAnalysis.ai_insights && (
-          <div className="mb-6">
-            <h4 className="font-medium text-green-400 mb-3">AI Insights</h4>
-            <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-gray-300 whitespace-pre-wrap font-mono">
-              <ReactMarkdown>{insightsText}</ReactMarkdown>
-              {!isTypingComplete && (
-                <span className="animate-ping text-green-400">|</span>
-              )}
+        <div className="relative">
+          <div className="absolute inset-0 bg-green-200 opacity-20 animate-pulse rounded-lg"></div>
+          <div className="relative bg-black bg-opacity-90 text-green-400 px-8 py-4 rounded-lg border border-green-400 font-mono">
+            <div className="text-xs mb-1 text-center">FINAL GRADE</div>
+            <div className="text-4xl font-bold text-center tracking-wider">
+            {(aiAnalysis.grade ?? '').split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="inline-block"
+                >
+                  {char}
+                </motion.span>
+              ))}
             </div>
           </div>
-        )}
+        </div>
+      </motion.div>
+      */}
 
-        {/* <div className="space-y-6">
-          <div>
-            <h4 className="font-medium text-green-400 mb-2">Key Strengths</h4>
-            <ul className="list-disc pl-5 space-y-1 text-gray-300 marker:text-green-400">
-              {aiAnalysis.strengths.map((strength, index) => (
-                <li key={index}>{strength}</li>
-              ))}
-            </ul>
-          </div>
 
-          <div>
-            <h4 className="font-medium text-green-400 mb-2">Areas for Improvement</h4>
-            <ul className="list-disc pl-5 space-y-1 text-gray-300 marker:text-green-400">
-              {aiAnalysis.areas_for_improvement.map((area, index) => (
-                <li key={index}>{area}</li>
-              ))}
-            </ul>
-          </div>
+      {/* Matrix-style Grade Display 
+      ITERATION 2 -- REMOVE */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
+        className="mb-6 flex justify-center"
+      >
+      <MatrixGrade grade={aiAnalysis.grade} />
+    </motion.div>
 
-          <div>
-            <h4 className="font-medium text-green-400 mb-2">Recommendations</h4>
-            <ul className="list-disc pl-5 space-y-1 text-gray-300 marker:text-green-400">
-              {aiAnalysis.recommendations.map((rec, index) => (
-                <li key={index}>{rec}</li>
-              ))}
-            </ul>
+      {/* AI Insights Section with Typewriter Effect */}
+      {aiAnalysis.ai_insights && (
+        <div className="mb-6">
+          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap font-mono">
+            <motion.span
+              className="text-gray-700"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <ReactMarkdown>{insightsText}</ReactMarkdown>
+            </motion.span>
+            <span className="animate-ping">|</span>
           </div>
-        </div> */}
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-medium text-green-900 mb-2">Key Strengths</h4>
+          <ul className="list-disc pl-5 space-y-1 text-gray-600">
+            {aiAnalysis.strengths.map((strength, index) => (
+              <li key={index}>{strength}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-medium text-green-900 mb-2">Areas for Improvement</h4>
+          <ul className="list-disc pl-5 space-y-1 text-gray-600">
+            {aiAnalysis.areas_for_improvement.map((area, index) => (
+              <li key={index}>{area}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-medium text-green-900 mb-2">Recommendations</h4>
+          <ul className="list-disc pl-5 space-y-1 text-gray-600">
+            {aiAnalysis.recommendations.map((rec, index) => (
+              <li key={index}>{rec}</li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -177,7 +230,6 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
   const renderAnalysis = (analysis, analysisInfo) => {
     return (
       <div className="space-y-6">
-        <AIAnalysis aiAnalysis={analysis.ai_analysis} />
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
           {analysisInfo.cached && (
             <div className="mb-4 flex items-center space-x-2 text-sm bg-gray-800/50 p-3 rounded-lg border border-green-400/20">
@@ -245,6 +297,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
           </div>
         </div>
           
+        <AIAnalysis aiAnalysis={analysis.ai_analysis} />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
