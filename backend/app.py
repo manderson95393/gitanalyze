@@ -250,7 +250,10 @@ def analyze_code_with_ai(repo_info, files_content, url):
         2. Code quality, structure, and practices. 
         3. Overall engagement, activity, and community sentiment.
         
-        Provide final thoughts.
+        Next provide a brief numbered list of Key Strengths 
+        Next provide a brief numbered list for Areas of Improvement
+        
+        Finally Provide final thoughts.
 """
     
     response = None
