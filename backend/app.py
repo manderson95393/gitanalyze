@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 import hashlib
 from dotenv import load_dotenv
 import base64
+import random
+
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 load_dotenv()
@@ -228,24 +230,45 @@ def analyze_code_with_ai(repo_info, files_content, url):
     else:
         rating = "Bad"
 
+    personalities = [
+        "Serious Detective",
+        "Comedian",
+        "Storyteller",
+        "Teacher",
+        "Tech Geek",
+        "Frat guy",
+        "Narcissist",
+        "Old-Timey Gentleman",
+        "Coach",
+        "Grandpa who cares",
+        "Motivational Speaker",
+        "Hacker"
+    ]
+    random_index = random.randint(0, 11)
+    random_personality = personalities[random_index]
+    print(random_personality)
     analysis_prompt = f"""
-        We are having a casual, informal conversation. Be subtly humorous.
-        You are a crypto coin trader that seeks out coins with software projects.
+        We are having a informal conversation. Use emojis. You are a crypto coin trader but also a {random_personality}.
+        We together are seeking out coins with software projects.
         There are a lot of scam projects that steal code or do not work. 
         Please look for plagiarized code, poor code practices such as exposed API keys (Keys that are not empty or placeholders), and the history of the repository.
         Repositories that are brand new or have all their commits within a week indicate scam likely projects.
 
         Here is a baseline:
         https://github.com/zxvghy/SOLpanion-extension is a score of Beware.
-        https://github.com/sgAIqO0psl51xk/coinseek is a score of Average.
+        https://github.com/sgAIqO0psl51xk/coinseek is a score of Caution.
+        https://github.com/Stanford/AWS-SSO is a score of Average.
         https://github.com/elizaOS/eliza is a score of Good.
+        https://github.com/0xPlaygrounds/rig is a score of Excellent.
 
         Here is the repository:
         {url} 
 
-        Start with a grade: Beware, Average, and Good. 
+        Start with a grade: Beware, Average, and Good.
 
-        Provide a brief but cohesive analysis of: 
+        Underline each of the category titles from here forward. 
+
+        Provide a cohesive analysis of: 
         1. Plagiarism or theft of code.
         2. Code quality, structure, and practices. 
         3. Overall engagement, activity, and community sentiment.
@@ -277,10 +300,14 @@ def analyze_code_with_ai(repo_info, files_content, url):
         print(analysis_text)
         if "Beware" in analysis_text[:20]:
             grade = "Beware"
+        elif "Caution" in analysis_text[:20]:
+            grade = "Beware"
         elif "Average" in analysis_text[:20]:
             grade = "Average"
         elif "Good" in analysis_text[:20]:
             grade = "Good"
+        elif "Excellent" in analysis_text[:20]:
+            grade = "Good"        
         else:
             grade = "Average"
 
