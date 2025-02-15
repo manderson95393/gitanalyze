@@ -369,6 +369,56 @@ def get_repository_files(owner, repo):
     
     return files_content
 
+
+def is_valid_github_url(url):
+    """Validate if the URL matches GitHub repository format."""
+    try:
+        # Allow both HTTPS and SSH formats
+        if url.startswith('git@github.com:'):
+            parts = url.split(':')[1].split('/')
+        else:
+            # Remove trailing .git if present
+            url = url.rstrip('.git')
+            parsed = urllib.parse.urlparse(url)
+            if parsed.netloc != 'github.com':
+                return False
+            parts = parsed.path.strip('/').split('/')
+            
+        # Check if we have owner/repo format
+        if len(parts) != 2:
+            return False
+            
+        owner, repo = parts
+        return bool(owner and repo)
+    except:
+        return False
+
+
+def is_repo_accessible(owner, repo, token):
+    """Check if the repository exists and is publicly accessible."""
+    try:
+        headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        response = requests.get(
+            f'https://api.github.com/repos/{owner}/{repo}',
+            headers=headers
+        )
+        
+        if response.status_code != 200:
+            return False, "Repository not found or inaccessible"
+            
+        repo_data = response.json()
+        if repo_data.get('private', False):
+            return False, "Repository is private"
+            
+        return True, None
+    except Exception as e:
+        return False, str(e)
+    
+
 def analyze_repository(repo_url):
     token = session.get('github_token')
     if not token:
