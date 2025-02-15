@@ -69,7 +69,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
         setIsTypingComplete(true);
         clearInterval(interval);
       }
-    }, 20);
+    }, 15);
 
     return () => clearInterval(interval);
   }, [aiAnalysis.ai_insights]);
@@ -107,7 +107,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
           </div>
         )}
 
-        <div className="space-y-6">
+        {/* <div className="space-y-6">
           <div>
             <h4 className="font-medium text-green-400 mb-2">Key Strengths</h4>
             <ul className="list-disc pl-5 space-y-1 text-gray-300 marker:text-green-400">
@@ -134,7 +134,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
               ))}
             </ul>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
