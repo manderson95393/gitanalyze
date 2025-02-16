@@ -1,9 +1,112 @@
 import { useState, useEffect, useRef } from 'react';
-import { GithubIcon, Github, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
+import { GithubIcon, Github, Twitter, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
 import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
-import { motion } from "framer-motion";
+import { motion,useInView } from "framer-motion";
 import ReactMarkdown from "react-markdown"
+
+const features = [
+  {
+    icon: BarChart2,
+    title: "Advanced Analytics",
+    description: "Get detailed metrics and statistics about your repository's health and activity."
+  },
+  {
+    icon: Brain,
+    title: "AI-Powered Insights",
+    description: "Receive intelligent recommendations powered by machine learning models."
+  },
+  {
+    icon: GitFork,
+    title: "Collaboration Metrics",
+    description: "Understand contributor activity and collaboration patterns."
+  },
+  {
+    icon: Database,
+    title: "Code Quality Analysis",
+    description: "Deep dive into code complexity and maintainability metrics."
+  },
+  {
+    icon: Star,
+    title: "Popularity Trends",
+    description: "Track stars, forks, and community engagement over time."
+  },
+  {
+    icon: AlertTriangle,
+    title: "Risk Detection",
+    description: "Identify potential risks and security vulnerabilities in your codebase."
+  }
+];
+
+const SectionWrapper = ({ children }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
+      transition={{ duration: 0.6 }}
+      className="w-full"
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const Navbar = ({ user }) => {
+  return (
+    <nav className="fixed top-0 left-0 right-0 bg-black border-b border-gray-900 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        {/* Left side - Logo */}
+        <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+          <div className="bg-green-500/10 p-2 rounded-lg">
+            <GithubIcon className="w-6 h-6 text-green-400" />
+          </div>
+          <span className="text-xl font-bold text-white">Repo Analyzer</span>
+        </a>
+
+        {/* Right side - Socials or User */}
+        <div className="flex items-center space-x-6">
+          {!user ? (
+            <>
+              <a
+                href="https://github.com/yourusername"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-green-400 transition-colors"
+              >
+                <Github className="w-6 h-6" />
+              </a>
+              <a
+                href="https://twitter.com/yourhandle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-green-400 transition-colors"
+              >
+                <Twitter className="w-6 h-6" />
+              </a>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center space-x-3 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
+                <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full ring-2 ring-green-500/30" />
+                <span className="text-gray-300">{user.login}</span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="px-4 py-2 text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-gray-600 transition-all duration-200"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 
 const formatDate = (dateString) => {
@@ -195,33 +298,95 @@ const AIAnalysis = ({ aiAnalysis }) => {
 
 const LandingPage = ({ onLogin }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden">
+    <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
-      
-      <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
-        <div className="space-y-12">
-          <div className="flex items-center justify-center space-x-4">
-            <Search className="w-10 h-10 text-green-400" />
-            <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
-          </div>
-          
-          <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
-            Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
-          </p>
-          
-          <div className="pt-4">
-            <CyberButton 
-              onClick={() => window.location.href = "http://localhost:5000/login/github"}
-              className="hover:scale-105 transition-transform duration-200"
-            >
-              <div className="flex items-center justify-center space-x-3 px-6 py-3">
-                <Github className="w-6 h-6" />
-                <span>Login with GitHub</span>
+      <Navbar user={null} />
+      <div className="relative z-10 space-y-20 py-20 pt-32">
+        {/* Login Section */}
+        <section className="min-h-screen flex items-center justify-center">
+          <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
+            <div className="space-y-12">
+              <div className="flex items-center justify-center space-x-4">
+                <Search className="w-10 h-10 text-green-400" />
+                <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
               </div>
-            </CyberButton>
-          </div>
-        </div>
-      </GlowingCardComponent>
+              
+              <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
+                Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
+              </p>
+              
+              <div className="pt-4">
+                <CyberButton 
+                  onClick={() => window.location.href = "http://localhost:5000/login/github"}
+                  className="hover:scale-105 transition-transform duration-200"
+                >
+                  <div className="flex items-center justify-center space-x-3 px-6 py-3">
+                    <Github className="w-6 h-6" />
+                    <span>Login with GitHub</span>
+                  </div>
+                </CyberButton>
+              </div>
+            </div>
+          </GlowingCardComponent>
+        </section>
+
+        {/* Video Tutorial Section */}
+        <SectionWrapper>
+          <section className="min-h-screen flex items-center justify-center px-4">
+            <GlowingCardComponent className="max-w-4xl w-full p-8">
+              <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                >
+                  <source src="/tutorial-video.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <h2 className="text-2xl font-bold text-green-400 mt-6 mb-4">
+                How It Works
+              </h2>
+              <p className="text-gray-300">
+                Watch this quick tutorial to learn how to analyze your GitHub repositories and get actionable insights.
+              </p>
+            </GlowingCardComponent>
+          </section>
+        </SectionWrapper>
+
+        {/* Features Section */}
+        <SectionWrapper>
+          <section className="min-h-screen flex items-center justify-center px-4">
+            <div className="max-w-6xl w-full">
+              <h2 className="text-3xl font-bold text-green-400 text-center mb-12">
+                Powerful Features
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.2 }}
+                  >
+                    <GlowingCardComponent className="p-6 h-full">
+                      <feature.icon className="w-12 h-12 text-green-400 mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-300">
+                        {feature.description}
+                      </p>
+                    </GlowingCardComponent>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </SectionWrapper>
+      </div>
     </div>
   );
 };
@@ -230,6 +395,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
   const renderAnalysis = (analysis, analysisInfo) => {
     return (
       <div className="space-y-6">
+        <Navbar user={user} />
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
           {analysisInfo.cached && (
             <div className="mb-4 flex items-center space-x-2 text-sm bg-gray-800/50 p-3 rounded-lg border border-green-400/20">
