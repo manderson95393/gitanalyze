@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from "framer-motion";
+import { Shield,ShieldCheck, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 const MatrixRainComponent = () => {
   const canvasRef = useRef(null);
@@ -95,6 +96,24 @@ const GlowingCardComponent = ({ children, className = '' }) => {
   );
 }
 
+const GlowingCardComponent2 = ({ children, className = '' }) => {
+  return (
+    <div className={`relative max-w-sm mx-auto ${className}`}>
+      {/* Outer glow layer */}
+      <div className="absolute -inset-0.5 bg-green-500 blur-[0.5px] opacity-75 animate-pulse rounded-lg" />
+      
+      {/* Inner glow layer */}
+      <div className="absolute -inset-[0.5px] bg-green-400 blur-[0.5px] opacity-50 animate-pulse rounded-lg" />
+      
+      {/* Main content */}
+      <div className="bg-black bg-opacity-90 backdrop-blur-lg rounded-lg border border-green-500/70 shadow-lg relative z-10 p-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-green-400/30 rounded-lg" />
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const CyberButton = ({ children, onClick, disabled = false }) => {
   return (
     <button
@@ -113,69 +132,169 @@ const CyberButton = ({ children, onClick, disabled = false }) => {
 };
 
 const MatrixGrade = ({ grade }) => {
-  const glitchAnim = {
-    hidden: { opacity: 0, scale: 0.95 },
+  // Calculate color and icon based on grade
+  const getGradeConfig = (grade) => {
+    const configs = {
+      Excellent: { 
+        color: 'green-400', 
+        icon: ShieldCheck,  // Changed to ShieldCheck for positive indication
+        message: 'Strong Security',  // Changed to match the GOOD grade
+        riskLevel: 'Low',  // Changed to be consistent with GOOD grade
+        securityScore: 'Strong'  // Changed to be consistent
+      },
+      Good: { 
+        color: 'green-400', 
+        icon: ShieldCheck,  // Changed to ShieldCheck for positive indication
+        message: 'Strong Security',  // Changed to match the GOOD grade
+        riskLevel: 'Low',  // Changed to be consistent with GOOD grade
+        securityScore: 'Strong'  // Changed to be consistent
+      },
+      Average: { 
+        color: 'yellow-400',
+        icon: AlertCircle, 
+        message: 'Moderate Risk',
+        riskLevel: 'Medium',
+        securityScore: 'Moderate'
+      },
+      Caution: { 
+        color: 'orange-400',
+        icon: AlertCircle, 
+        message: 'High Risk',
+        riskLevel: 'High',
+        securityScore: 'Poor'
+      },
+      Beware: { 
+        color: 'red-400',
+        icon: XCircle, 
+        message: 'Critical Risk',
+        riskLevel: 'Critical',
+        securityScore: 'Critical'
+      }
+    };
+    return configs[grade] || configs.MODERATE;
+  };
+
+  const config = getGradeConfig(grade);
+  const IconComponent = config.icon;
+
+  const containerAnim = {
+    hidden: { opacity: 0, y: 20 },
     visible: { 
       opacity: 1, 
-      scale: 1,
+      y: 0,
       transition: {
-        duration: 0.3
+        duration: 0.6,
+        ease: "easeOut"
       }
     }
   };
 
-  const charAnim = {
-    hidden: { opacity: 0, y: -20 },
-    visible: i => ({
+  const pulseAnim = {
+    hidden: { scale: 0.95, opacity: 0.5 },
+    visible: {
+      scale: 1,
       opacity: 1,
-      y: 0,
       transition: {
-        delay: i * 0.1,
-        duration: 0.3
+        duration: 2,
+        repeat: Infinity,
+        repeatType: "reverse"
       }
-    })
+    }
   };
 
   return (
     <motion.div
-      className="relative my-12"
+      className="my-12"
       initial="hidden"
       animate="visible"
-      variants={glitchAnim}
+      variants={containerAnim}
     >
-      {/* Main container */}
-      <div className="relative bg-black bg-opacity-95 py-12 px-16 rounded-xl border-2 border-green-400/50 shadow-xl shadow-green-500/30">
-        {/* Digital circuit pattern overlay */}
-        <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAwaDQwdjQwSDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAwaDQwdjQwSDB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTIwIDBMMCAyMGgyMHptMCA0MEw0MCAyMEgyMHoiIGZpbGw9IiMwMGZmMDAiLz48L3N2Zz4=')]"></div>
-        
-        {/* Grade label with scan line effect */}
-        <div className="text-xl text-green-400 mb-6 text-center font-mono relative overflow-hidden">
-          <div className="animate-scan absolute w-full h-2 bg-green-400/20"></div>
-          SYSTEM EVALUATION COMPLETE
+      <div className={`relative bg-gray-900 rounded-2xl border border-${config.color} shadow-2xl overflow-hidden`}>
+        {/* Hexagonal background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <svg width="100%" height="100%" className="absolute inset-0">
+            <pattern
+              id="hex" 
+              x="0" 
+              y="0" 
+              width="20" 
+              height="20" 
+              patternUnits="userSpaceOnUse"
+              className={`fill-${config.color}`}
+            >
+              <path d="M10 1L19 5.5L19 14.5L10 19L1 14.5L1 5.5L10 1Z"/>
+            </pattern>
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#hex)"/>
+          </svg>
         </div>
-        
-        {/* Grade display */}
-        <div className="text-8xl md:text-9xl font-bold text-center tracking-widest text-green-400 font-mono relative px-8">
-          <div className="relative z-10 transform scale-125">
-            {grade.split('').map((char, i) => (
-              <motion.span
-                key={i}
-                custom={i}
-                variants={charAnim}
-                className="inline-block relative"
-                style={{
-                  textShadow: '0 0 20px rgba(74, 222, 128, 0.5), 0 0 40px rgba(74, 222, 128, 0.3)'
-                }}
-              >
-                {char}
-              </motion.span>
-            ))}
+
+        {/* Content */}
+        <div className="relative p-8 md:p-12">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <motion.div 
+              className="inline-block mb-4"
+              variants={pulseAnim}
+            >
+              <IconComponent className={`w-16 h-16 text-${config.color}`} />
+            </motion.div>
+            <h3 className="text-xl font-medium text-gray-200 mb-2">
+              Repository Security Score
+            </h3>
+            <p className={`text-lg text-${config.color}`}>
+              {config.message}
+            </p>
+          </div>
+
+          {/* Grade Display */}
+          <div className="text-center">
+            <motion.div 
+              className={`text-9xl font-bold text-${config.color} font-mono tracking-wider`}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              {grade}
+            </motion.div>
+          </div>
+
+          {/* Grade Context */}
+          <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+            <div className="p-4 bg-gray-800 rounded-lg">
+              <div className="text-sm text-gray-400">Overall Score</div>
+              <div className={`text-lg font-medium text-${config.color}`}>
+                {grade}
+              </div>
+            </div>
+            <div className="p-4 bg-gray-800 rounded-lg">
+              <div className="text-sm text-gray-400">Security Score</div>
+              <div className={`text-lg font-medium text-${config.color}`}>
+                {config.securityScore}
+              </div>
+            </div>
+            <div className="p-4 bg-gray-800 rounded-lg">
+              <div className="text-sm text-gray-400">Risk Level</div>
+              <div className={`text-lg font-medium text-${config.color}`}>
+                {config.riskLevel}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Glowing border effect */}
+        <motion.div
+          className={`absolute inset-0 opacity-20 bg-${config.color}`}
+          animate={{
+            opacity: [0.1, 0.3, 0.1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+          }}
+        />
       </div>
     </motion.div>
   );
 };
 
-
-export { MatrixRainComponent as default, GlowingCardComponent, CyberButton, MatrixGrade };
+export { MatrixRainComponent as default, GlowingCardComponent, GlowingCardComponent2, CyberButton, MatrixGrade };
