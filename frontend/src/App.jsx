@@ -261,6 +261,32 @@ const LandingPage = ({ onGetStarted }) => {
           </GlowingCardComponent>
         </section>
 
+        {/* Video Tutorial Section */}
+        <SectionWrapper>
+          <section className="min-h-screen flex items-center justify-center px-4">
+            <GlowingCardComponent className="max-w-4xl w-full p-8">
+              <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                >
+                  <source src="/tutorial-video.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <h2 className="text-2xl font-bold text-green-400 mt-6 mb-4">
+                How It Works
+              </h2>
+              <p className="text-gray-300">
+                Watch this quick tutorial to learn how to analyze your GitHub repositories and get actionable insights.
+              </p>
+            </GlowingCardComponent>
+          </section>
+        </SectionWrapper>
+
         <SectionWrapper>
           <section className="min-h-screen flex items-center justify-center px-4">
             <div className="max-w-6xl w-full">
@@ -428,7 +454,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
             <div className="bg-green-500/10 p-2 rounded-lg">
               <GithubIcon className="w-6 h-6 text-green-400" />
             </div>
-            <span className="text-xl font-bold text-white">Repo Analyzer</span>
+            <a href="/"className="text-xl font-bold text-white">Repo Analyzer</a>
           </div>
         </div>
       </nav>
