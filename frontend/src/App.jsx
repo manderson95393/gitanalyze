@@ -1,9 +1,98 @@
 import { useState, useEffect, useRef } from 'react';
-import { GithubIcon, Github, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
+import { GithubIcon, Github, Twitter, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
 import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
-import { motion } from "framer-motion";
+import { motion,useInView } from "framer-motion";
 import ReactMarkdown from "react-markdown"
+
+const features = [
+  {
+    icon: BarChart2,
+    title: "Advanced Analytics",
+    description: "Get detailed metrics and statistics about your repository's health and activity."
+  },
+  {
+    icon: Brain,
+    title: "AI-Powered Insights",
+    description: "Receive intelligent recommendations powered by machine learning models."
+  },
+  {
+    icon: GitFork,
+    title: "Collaboration Metrics",
+    description: "Understand contributor activity and collaboration patterns."
+  },
+  {
+    icon: Database,
+    title: "Code Quality Analysis",
+    description: "Deep dive into code complexity and maintainability metrics."
+  },
+  {
+    icon: Star,
+    title: "Popularity Trends",
+    description: "Track stars, forks, and community engagement over time."
+  },
+  {
+    icon: AlertTriangle,
+    title: "Risk Detection",
+    description: "Identify potential risks and security vulnerabilities in your codebase."
+  }
+];
+
+const SectionWrapper = ({ children }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
+      transition={{ duration: 0.6 }}
+      className="w-full"
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const Navbar = () => {
+  return (
+    <nav className="fixed top-0 left-0 right-0 bg-black border-b border-gray-900 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        {/* Left side - Logo */}
+        <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+          <div className="bg-green-500/10 p-2 rounded-lg">
+            <GithubIcon className="w-6 h-6 text-green-400" />
+          </div>
+          <span className="text-xl font-bold text-white">Repo Analyzer</span>
+        </a>
+
+
+        {/* Right side - Socials or User */}
+        <div className="flex items-center space-x-6">
+          <>
+            <a
+              href="https://github.com/manderson95393/gitanalyze"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-green-400 transition-colors"
+            >
+              <Github className="w-6 h-6" />
+            </a>
+            <a
+              href="https://twitter.com/yourhandle"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-green-400 transition-colors"
+            >
+              <Twitter className="w-6 h-6" />
+            </a>
+          </>
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 
 const formatDate = (dateString) => {
@@ -43,193 +132,176 @@ const AIAnalysis = ({ aiAnalysis }) => {
   if (!aiAnalysis) return null;
 
   const [insightsText, setInsightsText] = useState("");
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [showGrade, setShowGrade] = useState(false);
 
   useEffect(() => {
     if (!aiAnalysis.ai_insights) return;
     
     setInsightsText(""); // Reset on new data
+    setIsTypingComplete(false);
     setShowGrade(false);
-  
+
     // First show the grade
     setTimeout(() => setShowGrade(true), 500);
     
-    // Log the original text for debugging
-    console.log("Before clean text:", aiAnalysis.ai_insights);
-    
-    let processedInsights = aiAnalysis.ai_insights
-      .replace(/[\s\S]*?(?=1\. \*\*Plagiarism)/, "")
-      .trim();
-  
-    
-    // Log the processed text
-    console.log("Cleaned text:", processedInsights);
-  
+    let currentText = "";
+    const totalLength = aiAnalysis.ai_insights.length;
     let index = 0;
+
     const interval = setInterval(() => {
-      if (index < processedInsights.length) {
-        setInsightsText((prev) => prev + processedInsights[index]);
+      if (index < totalLength) {
+        currentText += aiAnalysis.ai_insights[index];
+        setInsightsText(currentText);
         index++;
       } else {
+        setIsTypingComplete(true);
         clearInterval(interval);
       }
-    }, 20);
-  
+    }, 15);
+
     return () => clearInterval(interval);
   }, [aiAnalysis.ai_insights]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-200 hover:shadow-lg transition-shadow duration-200">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <Brain className="w-6 h-6 text-green-600" />
-          <h3 className="text-xl font-semibold text-green-900">AI Analysis</h3>
-        </div>
-        <ScoreBadge score={aiAnalysis.score} numericScore={aiAnalysis.numeric_score} />
-      </div>
-
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {Object.entries(aiAnalysis.score_breakdown).map(([category, score]) => (
-          <div key={category} className="bg-green-50 p-4 rounded-lg">
-            <div className="text-sm text-green-800 capitalize">{category.replace('_', ' ')}</div>
-            <div className="text-lg font-semibold text-green-900">{(score * 5).toFixed(1)}/5</div>
-            <div className="w-full bg-green-200 rounded-full h-2.5">
-              <div 
-                className="bg-green-600 h-2.5 rounded-full" 
-                style={{ width: `${score * 100}%` }}
-              ></div>
-            </div>
-          </div>
-        ))}
-      </div> */}
-
-
-      {/* Matrix-style Grade Display 
-      ITERATION 1 -- REMOVE
+    <div>
+      {/* Matrix Grade Display */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
         className="mb-6 flex justify-center"
       >
-        <div className="relative">
-          <div className="absolute inset-0 bg-green-200 opacity-20 animate-pulse rounded-lg"></div>
-          <div className="relative bg-black bg-opacity-90 text-green-400 px-8 py-4 rounded-lg border border-green-400 font-mono">
-            <div className="text-xs mb-1 text-center">FINAL GRADE</div>
-            <div className="text-4xl font-bold text-center tracking-wider">
-            {(aiAnalysis.grade ?? '').split('').map((char, i) => (
-                <motion.span
-                  key={i}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="inline-block"
-                >
-                  {char}
-                </motion.span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MatrixGrade grade={aiAnalysis.grade} />
       </motion.div>
-      */}
 
-
-      {/* Matrix-style Grade Display 
-      ITERATION 2 -- REMOVE */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: showGrade ? 1 : 0, y: showGrade ? 0 : -20 }}
-        className="mb-6 flex justify-center"
-      >
-      <MatrixGrade grade={aiAnalysis.grade} />
-    </motion.div>
-
-      {/* AI Insights Section with Typewriter Effect */}
-      {aiAnalysis.ai_insights && (
-        <div className="mb-6">
-          <div className="p-4 bg-green-50 rounded-lg text-gray-700 whitespace-pre-wrap font-mono">
-            <motion.span
-              className="text-gray-700"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ReactMarkdown>{insightsText}</ReactMarkdown>
-            </motion.span>
-            <span className="animate-ping">|</span>
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <Brain className="w-6 h-6 text-green-400" />
+            <h3 className="text-xl font-semibold text-white">AI Analysis</h3>
           </div>
         </div>
-      )}
 
-      <div className="space-y-6">
-        <div>
+        {/* AI Insights Section with Typewriter Effect */}
+        {aiAnalysis.ai_insights && (
+          <div className="mb-6">
+            <h4 className="font-medium text-green-400 mb-3">AI Insights</h4>
+            <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-gray-300 whitespace-pre-wrap font-mono">
+              <ReactMarkdown>{insightsText}</ReactMarkdown>
+              {!isTypingComplete && (
+                <span className="animate-ping text-green-400">|</span>
+              )}
+            </div>
+          </div>
+        )}
+
+      {/* <div className="space-y-6"> */}
+        {/* <div>
           <h4 className="font-medium text-green-900 mb-2">Key Strengths</h4>
           <ul className="list-disc pl-5 space-y-1 text-gray-600">
             {aiAnalysis.strengths.map((strength, index) => (
               <li key={index}>{strength}</li>
             ))}
           </ul>
-        </div>
+        </div> */}
 
-        <div>
+        {/* <div>
           <h4 className="font-medium text-green-900 mb-2">Areas for Improvement</h4>
           <ul className="list-disc pl-5 space-y-1 text-gray-600">
             {aiAnalysis.areas_for_improvement.map((area, index) => (
               <li key={index}>{area}</li>
             ))}
           </ul>
-        </div>
+        </div> */}
 
-        <div>
+        {/* <div>
           <h4 className="font-medium text-green-900 mb-2">Recommendations</h4>
           <ul className="list-disc pl-5 space-y-1 text-gray-600">
             {aiAnalysis.recommendations.map((rec, index) => (
               <li key={index}>{rec}</li>
             ))}
           </ul>
-        </div>
+        </div> */}
+      {/* </div> */}
       </div>
     </div>
   );
 };
 
-const LandingPage = ({ onLogin }) => {
+const LandingPage = ({ onGetStarted }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden">
+    <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
-      
-      <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
-        <div className="space-y-12">
-          <div className="flex items-center justify-center space-x-4">
-            <Search className="w-10 h-10 text-green-400" />
-            <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
-          </div>
-          
-          <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
-            Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
-          </p>
-          
-          <div className="pt-4">
-            <CyberButton 
-              onClick={() => window.location.href = "http://localhost:5000/login/github"}
-              className="hover:scale-105 transition-transform duration-200"
-            >
-              <div className="flex items-center justify-center space-x-3 px-6 py-3">
-                <Github className="w-6 h-6" />
-                <span>Login with GitHub</span>
+      <Navbar />
+      <div className="relative z-10 space-y-20 py-20 pt-32">
+        <section className="min-h-screen flex items-center justify-center">
+          <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
+            <div className="space-y-12">
+              <div className="flex items-center justify-center space-x-4">
+                <Search className="w-10 h-10 text-green-400" />
+                <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
               </div>
-            </CyberButton>
-          </div>
-        </div>
-      </GlowingCardComponent>
+              
+              <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
+                Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
+              </p>
+              
+              <div className="pt-4">
+                <CyberButton 
+                  onClick={onGetStarted}
+                  className="hover:scale-105 transition-transform duration-200"
+                >
+                  <div className="flex items-center justify-center space-x-3 px-6 py-3">
+                    <Search className="w-6 h-6" />
+                    <span>Get Started</span>
+                  </div>
+                </CyberButton>
+              </div>
+            </div>
+          </GlowingCardComponent>
+        </section>
+
+        <SectionWrapper>
+          <section className="min-h-screen flex items-center justify-center px-4">
+            <div className="max-w-6xl w-full">
+              <h2 className="text-3xl font-bold text-green-400 text-center mb-12">
+                Powerful Features
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.2 }}
+                  >
+                    <GlowingCardComponent className="p-6 h-full">
+                      <feature.icon className="w-12 h-12 text-green-400 mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-300">
+                        {feature.description}
+                      </p>
+                    </GlowingCardComponent>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </SectionWrapper>
+      </div>
     </div>
   );
 };
+
 
 const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze, error, analysis, analysisInfo, onLogout }) => {
   const renderAnalysis = (analysis, analysisInfo) => {
     return (
       <div className="space-y-6">
+        <AIAnalysis aiAnalysis={analysis.ai_analysis} />
+
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
           {analysisInfo.cached && (
             <div className="mb-4 flex items-center space-x-2 text-sm bg-gray-800/50 p-3 rounded-lg border border-green-400/20">
@@ -296,9 +368,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
             </div>
           </div>
         </div>
-          
-        <AIAnalysis aiAnalysis={analysis.ai_analysis} />
-        
+                  
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20">
             <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
@@ -360,24 +430,11 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
             </div>
             <span className="text-xl font-bold text-white">Repo Analyzer</span>
           </div>
-          
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-3 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
-              <img src={user.avatar_url} alt="Profile" className="w-8 h-8 rounded-full ring-2 ring-green-500/30" />
-              <span className="text-gray-300">{user.login}</span>
-            </div>
-            <button
-              onClick={onLogout}
-              className="px-4 py-2 text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-gray-600 transition-all duration-200"
-            >
-              Logout
-            </button>
-          </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {stats && (
+        {/* {stats && (
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
             <div className="flex items-center space-x-4">
               <div className="bg-green-500/10 p-3 rounded-lg">
@@ -389,7 +446,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
           <form onSubmit={handleAnalyze} className="flex space-x-4">
@@ -436,7 +493,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [showMainContent, setShowMainContent] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [analysisInfo, setAnalysisInfo] = useState(null);
@@ -445,29 +502,10 @@ export default function App() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    if (error) {
-      setError(error);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  
-    fetch('http://localhost:5000/api/auth/user', {
-      credentials: 'include'
-    })
+    fetch('http://localhost:5000/api/stats')
       .then(res => res.json())
-      .then(data => {
-        if (!data.error) {
-          setUser(data);
-        }
-      })
-      .catch(err => console.error('Error fetching user:', err));
-  
-    fetch('http://localhost:5000/api/stats', {
-      credentials: 'include'
-    })
-      .then(res => res.json())
-      .then(data => setStats(data));
+      .then(data => setStats(data))
+      .catch(err => console.error('Error fetching stats:', err));
   }, []);
 
   const handleAnalyze = async (e) => {
@@ -481,7 +519,6 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({ repo_url: repoUrl }),
       });
       
@@ -491,47 +528,28 @@ export default function App() {
         throw new Error(data.error || 'Failed to analyze repository');
       }
 
-      console.log("API Response:", data);
       if (data.error) {
         setError(data.error);
-      } 
-      else {
-        console.log("Setting analysis:", data.analysis);
+      } else {
         setAnalysis(data.analysis);
         setAnalysisInfo({
           cached: data.cached,
-          analyzedBy: data.analyzed_by,
           analyzedAt: data.analyzed_at
         });
       }
-    } 
-    catch (err) {
-      console.error("Analysis error:", err); 
+    } catch (err) {
       setError(err.message || 'Failed to analyze repository');
-    } 
-    finally {
+    } finally {
       setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('http://localhost:5000/api/auth/logout', {
-        credentials: 'include'
-      });
-      setUser(null);
-    } catch (error) {
-      console.error('Error logging out:', error);
     }
   };
 
   return (
     <>
-      {!user ? (
-        <LandingPage />
+      {!showMainContent ? (
+        <LandingPage onGetStarted={() => setShowMainContent(true)} />
       ) : (
         <MainContent
-          user={user}
           stats={stats}
           loading={loading}
           repoUrl={repoUrl}
@@ -540,7 +558,6 @@ export default function App() {
           error={error}
           analysis={analysis}
           analysisInfo={analysisInfo}
-          onLogout={handleLogout}
         />
       )}
     </>
