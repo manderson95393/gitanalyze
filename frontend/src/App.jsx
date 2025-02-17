@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { GithubIcon, Github, Twitter, Search, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle } from 'lucide-react';
+import { SearchCode, Search, GithubIcon, Github, Twitter, ShieldCheck, BarChart2, GitFork, Star, Clock, Users, Database, Brain, Check, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import PlagiarismAnalysis from './PlagiarismAnalysis';
-import MatrixRainComponent, { GlowingCardComponent, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
+import MatrixRainComponent, { GlowingCardComponent, GlowingCardComponent2, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
 import { motion,useInView } from "framer-motion";
 import ReactMarkdown from "react-markdown"
 
@@ -61,10 +61,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Left side - Logo */}
         <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-          <div className="bg-green-500/10 p-2 rounded-lg">
-            <GithubIcon className="w-6 h-6 text-green-400" />
+          <span className="text-3xl font-bold text-white">ChainGuard</span>
+          <div className="flex items-center space-x-2">
+            <div className="bg-green-500/10 p-2 rounded-lg">
+              <ShieldCheck className="w-6 h-6 text-green-400" />
+            </div>
           </div>
-          <span className="text-xl font-bold text-white">Repo Analyzer</span>
         </a>
 
 
@@ -185,7 +187,7 @@ const AIAnalysis = ({ aiAnalysis }) => {
         {/* AI Insights Section with Typewriter Effect */}
         {aiAnalysis.ai_insights && (
           <div className="mb-6">
-            <h4 className="font-medium text-green-400 mb-3">AI Insights</h4>
+            {/*<h4 className="font-medium text-green-400 mb-3">AI Insights</h4>*/}
             <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-gray-300 whitespace-pre-wrap font-mono">
               <ReactMarkdown>{insightsText}</ReactMarkdown>
               {!isTypingComplete && (
@@ -233,38 +235,42 @@ const LandingPage = ({ onGetStarted }) => {
     <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
       <Navbar />
-      <div className="relative z-10 space-y-20 py-20 pt-32">
-        <section className="min-h-screen flex items-center justify-center">
-          <GlowingCardComponent className="text-center p-12 max-w-2xl mx-4">
-            <div className="space-y-12">
-              <div className="flex items-center justify-center space-x-4">
-                <Search className="w-10 h-10 text-green-400" />
-                <h1 className="text-4xl font-bold text-green-400 font-mono">Repo Analyzer</h1>
-              </div>
-              
-              <p className="text-xl text-green-300 font-mono leading-relaxed px-4">
-                Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
-              </p>
-              
-              <div className="pt-4">
-                <CyberButton 
-                  onClick={onGetStarted}
-                  className="hover:scale-105 transition-transform duration-200"
-                >
-                  <div className="flex items-center justify-center space-x-3 px-6 py-3">
-                    <Search className="w-6 h-6" />
-                    <span>Get Started</span>
-                  </div>
-                </CyberButton>
-              </div>
+      <div className="relative z-10 space-y-12 py-16 pt-32">
+      <section className="py-12 flex items-center justify-center">
+        <GlowingCardComponent className="text-center p-4 max-w-6xl mx-4">
+          <div className="space-y-12">
+          <div className="flex items-baseline justify-center space-x-6">
+            <h1 className="text-6xl font-bold text-green-400 font-mono">
+              <strong>PROTECT</strong> your investments from <em>shorts, scams & exploits</em>
+            </h1>
+          </div>
+            <div className="flex items-baseline justify-center space-x-6">
+              <SearchCode className="w-14 h-14 text-green-400" />
             </div>
-          </GlowingCardComponent>
-        </section>
+            
+            <p className="text-2xl text-green-300 font-mono leading-relaxed px-8">
+              Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
+            </p>
+            
+            <div className="pt-4">
+              <CyberButton 
+                onClick={onGetStarted}
+                className="hover:scale-105 transition-transform duration-200"
+              >
+                <div className="flex items-center justify-center space-x-3 px-6 py-3">
+                  <span>Get Started</span>
+                  <ArrowRight className="w-6 h-6" />
+                </div>
+              </CyberButton>
+            </div>
+          </div>
+        </GlowingCardComponent>
+    </section>
 
         {/* Video Tutorial Section */}
         <SectionWrapper>
-          <section className="min-h-screen flex items-center justify-center px-4">
-            <GlowingCardComponent className="max-w-4xl w-full p-8">
+          <section className="py-12 flex items-center justify-center px-4">
+            <GlowingCardComponent className="max-w-6xl w-full p-12">
               <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
                 <video
                   className="w-full h-full object-cover"
@@ -277,10 +283,10 @@ const LandingPage = ({ onGetStarted }) => {
                   Your browser does not support the video tag.
                 </video>
               </div>
-              <h2 className="text-2xl font-bold text-green-400 mt-6 mb-4">
+              <h2 className="text-4xl font-bold text-green-400 mt-6 mb-4">
                 How It Works
               </h2>
-              <p className="text-gray-300">
+              <p className="text-x1 text-gray-300">
                 Watch this quick tutorial to learn how to analyze your GitHub repositories and get actionable insights.
               </p>
             </GlowingCardComponent>
@@ -288,9 +294,9 @@ const LandingPage = ({ onGetStarted }) => {
         </SectionWrapper>
 
         <SectionWrapper>
-          <section className="min-h-screen flex items-center justify-center px-4">
+          <section className="py-12 flex items-center justify-center px-4">
             <div className="max-w-6xl w-full">
-              <h2 className="text-3xl font-bold text-green-400 text-center mb-12">
+              <h2 className="text-5xl font-bold text-green-400 text-center mb-12">
                 Powerful Features
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -302,11 +308,11 @@ const LandingPage = ({ onGetStarted }) => {
                     transition={{ delay: index * 0.2 }}
                   >
                     <GlowingCardComponent className="p-6 h-full">
-                      <feature.icon className="w-12 h-12 text-green-400 mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">
+                      <feature.icon className="w-16 h-16 text-green-400 mb-6" />
+                      <h3 className="text-2xl font-semibold text-white mb-2">
                         {feature.title}
                       </h3>
-                      <p className="text-gray-300">
+                      <p className="text-lg text-gray-300">
                         {feature.description}
                       </p>
                     </GlowingCardComponent>
@@ -428,7 +434,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
               Recent Commits
             </h3>
             <div className="space-y-2">
-              {analysis.commit_activity.recent_commits.slice(0, 3).map((commit) => (
+              {analysis.commit_activity.recent_commits.slice(0, 5).map((commit) => (
                 <div key={commit.sha} 
                      className="p-3 rounded-lg border border-gray-700 hover:border-green-500/30 transition-all duration-300">
                   <div className="text-xs font-mono text-gray-500">{commit.sha.substring(0, 7)}</div>
@@ -451,10 +457,10 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
       <nav className="bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
+            <a href="/" className="text-xl font-bold text-white">ChainGuard</a>
             <div className="bg-green-500/10 p-2 rounded-lg">
-              <GithubIcon className="w-6 h-6 text-green-400" />
+              <ShieldCheck className="w-6 h-6 text-green-400" />
             </div>
-            <a href="/"className="text-xl font-bold text-white">Repo Analyzer</a>
           </div>
         </div>
       </nav>
@@ -526,13 +532,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    fetch('http://localhost:5000/api/stats')
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error('Error fetching stats:', err));
-  }, []);
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
