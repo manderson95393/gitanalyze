@@ -29,29 +29,6 @@ CORS(app, origins=["http://localhost:3000"],
      supports_credentials=True)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
-# SQLite configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///github_analyzer.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-class RepoAnalysis(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    repo_url = db.Column(db.String(500), unique=True, nullable=False)
-    repo_hash = db.Column(db.String(32), unique=True, nullable=False)
-    analysis_data = db.Column(db.JSON, nullable=False)
-    created_by = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    access_count = db.Column(db.Integer, default=1)
-
-    def __init__(self, repo_url, repo_hash, analysis_data, created_by):
-        self.repo_url = repo_url
-        self.repo_hash = repo_hash
-        if isinstance(analysis_data, str):
-            self.analysis_data = json.loads(analysis_data)
-        else:
-            self.analysis_data = analysis_data
-        self.created_by = created_by
-
 def get_repo_hash(repo_url):
     return hashlib.md5(repo_url.encode()).hexdigest()
     
@@ -76,7 +53,7 @@ def analyze_code_with_ai(repo_info, files_content, url):
     random_personality = personalities[random_index]
     print(random_personality)
     analysis_prompt = f"""
-        We are having a informal conversation. Use emojis. You are a crypto coin trader but also a {random_personality}.
+        Throughout this analysis I want you take on the persona of {random_personality} and use some emojis. With this persona in mind, you are also crypto coin trader.
         We together are seeking out coins with software projects.
         There are a lot of scam projects that steal code or do not work. 
         Please look for plagiarized code, poor code practices such as exposed API keys (Keys that are not empty or placeholders), and the history of the repository.
@@ -129,13 +106,13 @@ def analyze_code_with_ai(repo_info, files_content, url):
         if "Beware" in analysis_text[:20]:
             grade = "Beware"
         elif "Caution" in analysis_text[:20]:
-            grade = "Beware"
+            grade = "Caution"
         elif "Average" in analysis_text[:20]:
             grade = "Average"
         elif "Good" in analysis_text[:20]:
             grade = "Good"
         elif "Excellent" in analysis_text[:20]:
-            grade = "Good"        
+            grade = "Excellent"        
         else:
             grade = "Average"
 
@@ -383,22 +360,7 @@ def analyze():
         if not repo_url:
             return jsonify({'error': 'Repository URL is required'}), 400
         
-        # Check cache
-        repo_hash = get_repo_hash(repo_url)
-        existing_analysis = RepoAnalysis.query.filter_by(repo_hash=repo_hash).first()
-        if existing_analysis:
-            existing_analysis.access_count += 1
-            db.session.commit()
-            
-            print("Returning cached analysis")
-            return jsonify({
-                'analysis': existing_analysis.analysis_data,
-                'cached': True,
-                'analyzed_by': existing_analysis.created_by,
-                'analyzed_at': existing_analysis.created_at.isoformat()
-            })
         
-        # Perform new analysis
         print(f"Starting new analysis for {repo_url}")
         analysis = analyze_repository(repo_url)
         
@@ -406,14 +368,6 @@ def analyze():
             return jsonify({'error': 'Analysis failed'}), 500
             
         print("Analysis complete. Saving to database...")
-        new_analysis = RepoAnalysis(
-            repo_url=repo_url,
-            repo_hash=repo_hash,
-            analysis_data=analysis,
-            created_by=username
-        )
-        db.session.add(new_analysis)
-        db.session.commit()
         
         response_data = {
             'analysis': analysis,
@@ -429,24 +383,8 @@ def analyze():
         print(f"Error in analyze route: {str(e)}")
         traceback.print_exc()  # Print full stack trace
         return jsonify({'error': str(e)}), 500
-    
-
-@app.route('/api/stats')
-def get_stats():
-    total_analyses = RepoAnalysis.query.count()
-    most_accessed = RepoAnalysis.query.order_by(RepoAnalysis.access_count.desc()).limit(5).all()
-    
-    return jsonify({
-        'total_analyses': total_analyses,
-        'most_popular': [{
-            'repo_url': analysis.repo_url,
-            'access_count': analysis.access_count,
-            'last_accessed': analysis.created_at.isoformat()
-        } for analysis in most_accessed]
-    })
 
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+        app.run(debug=True)
