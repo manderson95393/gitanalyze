@@ -22,4 +22,4 @@ COPY backend/ .
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
-sh -c ["gunicorn", "app:app", "--bind", "0.0.0.0:8000"]
+CMD ["/bin/sh", "-c", "cd backend && gunicorn app:app"]
