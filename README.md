@@ -3,7 +3,7 @@
 An elegant tool for analyzing GitHub repositories to assess their quality, maintainability, and community health.
 
 # 📋 Overview
-The GitHub Repository Analyzer is a powerful tool designed to help developers and teams evaluate GitHub repositories through comprehensive analysis. It provides insights into code quality, maintenance patterns, community engagement, and overall project health.
+The GitHub Repository Analyzer -- ChainGuard -- is a powerful tool designed to help developers and teams evaluate GitHub repositories through comprehensive analysis. It provides insights into code quality, maintenance patterns, community engagement, and overall project health.
 ✨ Key Features
 
 Comprehensive Repository Analysis: Evaluates multiple aspects of a repository including:
@@ -14,25 +14,28 @@ Community engagement
 Maintenance patterns
 Issue management
 
-
 Scoring System: Provides a detailed 5-point scoring system across various categories
 Smart Recommendations: Generates tailored suggestions for improvement
 Historical Analysis: Tracks repository changes and maintenance patterns
 Caching System: Stores analysis results for quick future reference
 
 # 🔬 Analysis Components
-Repository Scoring
-The analyzer evaluates repositories across five key dimensions:
-ComponentWeightDescriptionDocumentation=1.0 stars, Quality and completeness of README and documentationStructure=1.0 stars, Project organization, dependencies, and testing setupCommunity=1.0 stars, forks, and community engagementMaintenance=1.0 stars, Update frequency and maintenance patternsIssues=1.0 stars, and Issue management and resolution
-
+The analyzer evaluates repositories across three key dimensions:
+        1. Plagiarism or theft of code.
+        2. Code quality, structure, and practices. 
+        3. Overall engagement, activity, and community sentiment.\
+        
 # Score Interpretation
+Risk is the likelihood that a crypto project is either a scam, poorly maintained, or could fail due to technical issues, which could result in investors losing their money. 
+Beware -- HIGH risk level
 
-4.0 - 5.0: Excellent - Well-maintained, documented, and community-supported  
-2.5 - 3.9: Average - Functional but has room for improvement  
-0.0 - 2.4: Needs Work - Requires significant improvements
+Caution, 
+Average - AVERAGE risk level
+Good,
+Excellent -- VERY LOW risk level
 
 # 🛠 Technical Architecture
-Backend:   Python - Flask - SQLite - GitHub API - OpenAI API  
+Backend:   Python - Flask - GitHub API - OpenAI API  
 Frontend:  React.js - Tailwind CSS 
 
 
