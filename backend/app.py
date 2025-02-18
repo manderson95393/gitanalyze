@@ -35,6 +35,24 @@ def get_repo_hash(repo_url):
 def analyze_code_with_ai(repo_info, files_content, url):
     openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 
+
+    # Process repository metadata
+    repo_metadata = f"""
+            Repository Metadata:
+            - Name: {repo_info['name']}
+            - Description: {repo_info['description']}
+            - Stars: {repo_info['stars']}
+            - Forks: {repo_info['forks']}
+            - Watchers: {repo_info['watchers_count']}
+            - Total Commits: {repo_info['total_commits']}
+            - Tags Count: {len(repo_info['tags'])}
+            - Collaborators Count: {len(repo_info['collaborators'])}
+            - Open Issues: {repo_info['open_issues_count']}
+            - Created: {repo_info['created_at']}
+            - Last Updated: {repo_info['last_updated']}
+        """
+
+    # Experiment with varied personas
     personalities = [
         "Serious Detective",
         "Comedian",
@@ -67,12 +85,12 @@ def analyze_code_with_ai(repo_info, files_content, url):
         Here is a baseline:
         https://github.com/zxvghy/SOLpanion-extension is a score of Beware.
         https://github.com/sgAIqO0psl51xk/coinseek is a score of Caution.
-        https://github.com/Stanford/AWS-SSO is a score of Average.
+        https://github.com/Stanford/AWS-SSO and https://github.com/manderson95393/gitanalyze is a score of Average.
         https://github.com/elizaOS/eliza is a score of Good.
         https://github.com/0xPlaygrounds/rig is a score of Excellent.
 
-        Here is the repository:
-        {url} 
+        Here is the repository url and metadata:
+        {url, repo_metadata} 
 
         The very first output should be a grade: Beware, Caution, Average, Good, and Excellent.
 
@@ -375,8 +393,8 @@ def analyze_repository(repo_url):
         
         repo_response = requests.get(base_url, headers=headers)
         repo_info = repo_response.json()
-        
-        # In-progress scrape repo -----------------
+
+        # Web scrape repo -----------------
         # Scrape basic repository information
         scraped_info = scrape_repository_info(repo_url)
 
@@ -424,7 +442,7 @@ def analyze_repository(repo_url):
 
         ai_analysis = analyze_code_with_ai({
             'name': repo_info['name'],
-            'description': repo_info['description'],
+            'description':repo_info['description'],
             'stars': repo_info['stargazers_count'],
             'forks': repo_info['forks_count'],
             'watchers_count': len(watchers),
