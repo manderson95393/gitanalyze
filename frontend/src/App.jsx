@@ -214,42 +214,42 @@ const LandingPage = ({ onGetStarted }) => {
     <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
       <Navbar variant="dark" />
-      <div className="relative z-10 space-y-12 py-16 pt-32">
-      <section className="py-12 flex items-center justify-center">
-        <GlowingCardComponent className="text-center p-4 max-w-6xl mx-4">
-          <div className="space-y-12">
-          <div className="flex items-baseline justify-center space-x-6">
-            <h1 className="text-6xl font-bold text-green-400 font-mono">
-              <strong>PROTECT</strong> your investments from <em>shorts, scams & exploits</em>
-            </h1>
-          </div>
-            <div className="flex items-baseline justify-center space-x-6">
-              <SearchCode className="w-14 h-14 text-green-400" />
+      <div className="relative z-10 space-y-8 py-16 pt-32">
+        <section className="py-8 flex items-center justify-center">
+          <GlowingCardComponent className="text-center p-4 max-w-4xl mx-4">
+            <div className="space-y-8">
+              <div className="flex items-baseline justify-center space-x-6">
+                <h1 className="text-4xl font-bold text-green-400 font-mono">
+                  <strong>PROTECT</strong> your investments from <em>shorts, scams & exploits</em>
+                </h1>
+              </div>
+              <div className="flex items-baseline justify-center space-x-6">
+                <SearchCode className="w-10 h-10 text-green-400" />
+              </div>
+              
+              <p className="text-lg text-green-300 font-mono leading-relaxed px-6">
+                Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
+              </p>
+              
+              <div className="pt-4">
+                <CyberButton 
+                  onClick={onGetStarted}
+                  className="hover:scale-105 transition-transform duration-200"
+                >
+                  <div className="flex items-center justify-center space-x-3 px-6 py-3">
+                    <span>Get Started</span>
+                    <ArrowRight className="w-6 h-6" />
+                  </div>
+                </CyberButton>
+              </div>
             </div>
-            
-            <p className="text-2xl text-green-300 font-mono leading-relaxed px-8">
-              Analyze GitHub repositories with AI-powered insights. Get detailed metrics, code quality analysis, and actionable recommendations.
-            </p>
-            
-            <div className="pt-4">
-              <CyberButton 
-                onClick={onGetStarted}
-                className="hover:scale-105 transition-transform duration-200"
-              >
-                <div className="flex items-center justify-center space-x-3 px-6 py-3">
-                  <span>Get Started</span>
-                  <ArrowRight className="w-6 h-6" />
-                </div>
-              </CyberButton>
-            </div>
-          </div>
-        </GlowingCardComponent>
-    </section>
+          </GlowingCardComponent>
+        </section>
 
         {/* Video Tutorial Section */}
         <SectionWrapper>
-          <section className="py-12 flex items-center justify-center px-4">
-            <GlowingCardComponent className="max-w-6xl w-full p-12">
+          <section className="py-8 flex items-center justify-center px-4">
+            <GlowingCardComponent className="max-w-4xl w-full p-8">
               <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
                 <video
                   className="w-full h-full object-cover"
@@ -262,10 +262,10 @@ const LandingPage = ({ onGetStarted }) => {
                   Your browser does not support the video tag.
                 </video>
               </div>
-              <h2 className="text-4xl font-bold text-green-400 mt-6 mb-4">
+              <h2 className="text-3xl font-bold text-green-400 mt-6 mb-4">
                 How It Works
               </h2>
-              <p className="text-x1 text-gray-300">
+              <p className="text-lg text-gray-300">
                 Watch this quick tutorial to learn how to analyze your GitHub repositories and get actionable insights.
               </p>
             </GlowingCardComponent>
@@ -273,12 +273,12 @@ const LandingPage = ({ onGetStarted }) => {
         </SectionWrapper>
 
         <SectionWrapper>
-          <section className="py-12 flex items-center justify-center px-4">
-            <div className="max-w-6xl w-full">
-              <h2 className="text-5xl font-bold text-green-400 text-center mb-12">
+          <section className="py-8 flex items-center justify-center px-4">
+            <div className="max-w-4xl w-full">
+              <h2 className="text-4xl font-bold text-green-400 text-center mb-8">
                 Powerful Features
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {features.map((feature, index) => (
                   <motion.div
                     key={index}
@@ -286,12 +286,12 @@ const LandingPage = ({ onGetStarted }) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.2 }}
                   >
-                    <GlowingCardComponent className="p-6 h-full">
-                      <feature.icon className="w-16 h-16 text-green-400 mb-6" />
-                      <h3 className="text-2xl font-semibold text-white mb-2">
+                    <GlowingCardComponent className="p-4 h-full">
+                      <feature.icon className="w-12 h-12 text-green-400 mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">
                         {feature.title}
                       </h3>
-                      <p className="text-lg text-gray-300">
+                      <p className="text-base text-gray-300">
                         {feature.description}
                       </p>
                     </GlowingCardComponent>
