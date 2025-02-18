@@ -69,7 +69,9 @@ def analyze_code_with_ai(repo_info, files_content, url):
         Here is the repository:
         {url} 
 
-        Start with a grade: Beware, Caution, Average, Good, and Excellent.
+        The very first output should be a grade: Beware, Caution, Average, Good, and Excellent.
+
+        Begin the introduction next.
 
         Underline each of the category titles from here forward. 
 
