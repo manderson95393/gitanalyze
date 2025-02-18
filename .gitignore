@@ -1,3 +1,10 @@
+# Production build
+build/
+dist/
+
+# Dependency directories
+node_modules/
+
 # Environment Files
 .env
 *.env
