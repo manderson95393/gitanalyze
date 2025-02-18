@@ -1,9 +1,5 @@
 import traceback
-from flask import redirect, url_for, session
 from flask import Flask, jsonify, request, send_from_directory
-from flask_cors import CORS
-from flask_dance.contrib.github import make_github_blueprint, github
-from flask_sqlalchemy import SQLAlchemy
 import json
 import os
 import requests
