@@ -69,7 +69,7 @@ def analyze_code_with_ai(repo_info, files_content, url):
         Here is the repository:
         {url} 
 
-        Start with a grade: Beware, Average, and Good.
+        Start with a grade: Beware, Caution, Average, Good, and Excellent.
 
         Underline each of the category titles from here forward. 
 
@@ -103,15 +103,15 @@ def analyze_code_with_ai(repo_info, files_content, url):
         result = "\n".join(analysis_text[1:])
         
         print(analysis_text)
-        if "Beware" in analysis_text[:20]:
+        if "Beware" in analysis_text[:25]:
             grade = "Beware"
-        elif "Caution" in analysis_text[:20]:
+        elif "Caution" in analysis_text[:25]:
             grade = "Caution"
-        elif "Average" in analysis_text[:20]:
+        elif "Average" in analysis_text[:25]:
             grade = "Average"
-        elif "Good" in analysis_text[:20]:
+        elif "Good" in analysis_text[:25]:
             grade = "Good"
-        elif "Excellent" in analysis_text[:20]:
+        elif "Excellent" in analysis_text[:25]:
             grade = "Excellent"        
         else:
             grade = "Average"
@@ -204,130 +204,136 @@ def is_valid_github_url(url):
         return False
 
 
-def is_repo_accessible(owner, repo, token):
-
-    # Get the GitHub token from an environment variable
-    token = os.getenv('GITHUB_PAT')
-    if not token:
-        raise Exception('GitHub PAT not found. Ensure it is set in the environment.')
-
-    headers = {
-        'Authorization': f'token {token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-
-    """Check if the repository exists and is publicly accessible."""
+def is_public_github_repo(repo_url, headers):
     try:
+        # Validate the URL format
+        if not repo_url.startswith("https://github.com/"):
+            return False, "Invalid GitHub URL"
+
+        # Extract owner and repository name
+        parts = repo_url.rstrip("/").split("/")
+        if len(parts) < 5:  # URL should have at least "https://github.com/{owner}/{repo}"
+            return False, "Invalid GitHub repository format"
+
+        owner, repo = parts[-2], parts[-1]
         
-        response = requests.get(
-            f'https://api.github.com/repos/{owner}/{repo}',
-            headers=headers
-        )
-        
-        if response.status_code != 200:
-            return False, "Repository not found or inaccessible"
-            
-        repo_data = response.json()
-        if repo_data.get('private', False):
-            return False, "Repository is private"
-            
-        return True, None
+        # GitHub API endpoint for the repository
+        api_url = f"https://api.github.com/repos/{owner}/{repo}"
+
+        # Make an unauthenticated request
+        response = requests.get(api_url, headers=headers)
+
+        if response.status_code == 200:
+            return True, "Valid public GitHub repository"
+        elif response.status_code == 404:
+            return False, "Repository not found or private"
+        else:
+            return False, f"Unexpected status code: {response.status_code}"
     except Exception as e:
-        return False, str(e)
+        return False, f"Error: {str(e)}"
     
-
 def analyze_repository(repo_url):
-    
-    # Get the GitHub token from an environment variable
-    token = os.getenv('GITHUB_PAT')
-    if not token:
-        raise Exception('GitHub PAT not found. Ensure it is set in the environment.')
+    try:
+        # Get the GitHub token from an environment variable
+        token = os.getenv('GITHUB_PAT')
+        if not token:
+            raise Exception('GitHub PAT not found. Ensure it is set in the environment.')
 
-    headers = {
-        'Authorization': f'token {token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-    parts = repo_url.rstrip('/').split('/')
-    owner = parts[-2]
-    repo = parts[-1]
-    
-    base_url = f'https://api.github.com/repos/{owner}/{repo}'
-    
-    print("Analyzing repository:", repo_url)
-    
-    repo_response = requests.get(base_url, headers=headers)
-    repo_info = repo_response.json()
-    
-    languages = requests.get(f'{base_url}/languages', headers=headers).json()
-    commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
-    contributors = requests.get(f'{base_url}/contributors', params={'per_page': 10}, headers=headers).json()
-    total_commits = len(commits)
-    is_single_commit = total_commits == 1
-    files_content = get_repository_files(owner, repo)
+        headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
 
-    watchers_response = requests.get(f'{base_url}/watchers', headers=headers)
-    watchers = watchers_response.json()
-    
-    tags_response = requests.get(f'{base_url}/tags', headers=headers)
-    tags = tags_response.json()
-    
-    collaborators_response = requests.get(f'{base_url}/collaborators', headers=headers)
-    collaborators = collaborators_response.json()
-    
-    repo_data = {
-        'repository': {
+        valid = is_public_github_repo(repo_url, headers)
+        print(valid)
+        print(valid[1])
+        if not valid[0]:
+            return "Invalid"
+        
+        parts = repo_url.rstrip("/").split("/")
+        if len(parts) < 5:  # URL should have at least "https://github.com/{owner}/{repo}"
+            return False, "Invalid GitHub repository format"
+
+        owner, repo = parts[-2], parts[-1]
+
+        base_url = f'https://api.github.com/repos/{owner}/{repo}'
+        
+        print("Analyzing repository:", repo_url)
+        
+        repo_response = requests.get(base_url, headers=headers)
+        repo_info = repo_response.json()
+        
+        languages = requests.get(f'{base_url}/languages', headers=headers).json()
+        commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
+        contributors = requests.get(f'{base_url}/contributors', params={'per_page': 10}, headers=headers).json()
+        total_commits = len(commits)
+        is_single_commit = total_commits == 1
+        files_content = get_repository_files(owner, repo)
+
+        watchers_response = requests.get(f'{base_url}/watchers', headers=headers)
+        watchers = watchers_response.json()
+        
+        tags_response = requests.get(f'{base_url}/tags', headers=headers)
+        tags = tags_response.json()
+        
+        collaborators_response = requests.get(f'{base_url}/collaborators', headers=headers)
+        collaborators = collaborators_response.json()
+        
+        repo_data = {
+            'repository': {
+                'name': repo_info['name'],
+                'description': repo_info['description'],
+                'stars': repo_info['stargazers_count'],
+                'forks': repo_info['forks_count'],
+                'open_issues': repo_info['open_issues_count'],
+                'created_at': repo_info['created_at'],
+                'last_updated': repo_info['updated_at'],
+                'is_single_commit': is_single_commit
+            },
+            'commit_activity': {
+                'total_commits': total_commits,
+                'recent_commits': [{'sha': c['sha'][:7], 
+                                'message': c['commit']['message'],
+                                'date': c['commit']['author']['date']} 
+                                for c in commits[:5]]
+            },
+            'languages': languages,
+            'contributors': [{'login': c['login'], 
+                            'contributions': c['contributions']} 
+                            for c in contributors]
+        }
+
+        ai_analysis = analyze_code_with_ai({
             'name': repo_info['name'],
             'description': repo_info['description'],
             'stars': repo_info['stargazers_count'],
             'forks': repo_info['forks_count'],
-            'open_issues': repo_info['open_issues_count'],
+            'watchers_count': len(watchers),
+            'tags': tags,
+            'collaborators': collaborators,
+            'total_commits': len(commits),
             'created_at': repo_info['created_at'],
             'last_updated': repo_info['updated_at'],
-            'is_single_commit': is_single_commit
-        },
-        'commit_activity': {
-            'total_commits': total_commits,
-            'recent_commits': [{'sha': c['sha'][:7], 
-                              'message': c['commit']['message'],
-                              'date': c['commit']['author']['date']} 
-                             for c in commits[:5]]
-        },
-        'languages': languages,
-        'contributors': [{'login': c['login'], 
-                         'contributions': c['contributions']} 
-                        for c in contributors]
-    }
-
-    ai_analysis = analyze_code_with_ai({
-        'name': repo_info['name'],
-        'description': repo_info['description'],
-        'stars': repo_info['stargazers_count'],
-        'forks': repo_info['forks_count'],
-        'watchers_count': len(watchers),
-        'tags': tags,
-        'collaborators': collaborators,
-        'total_commits': len(commits),
-        'created_at': repo_info['created_at'],
-        'last_updated': repo_info['updated_at'],
-        'open_issues_count': repo_info['open_issues_count']
-    }, files_content, url = repo_url )
+            'open_issues_count': repo_info['open_issues_count']
+        }, files_content, url = repo_url )
+            
+        print("AI Analysis Results:", ai_analysis)
         
-    print("AI Analysis Results:", ai_analysis)
-    
-    final_analysis = {
-        **repo_data,
-        'ai_analysis': json.loads(ai_analysis),
-        'analysis_date': datetime.now(timezone.utc).isoformat()
-    }
-    
-    print("Final Analysis Structure:", {
-        'keys': list(final_analysis.keys()),
-        'has_plagiarism': 'plagiarism_analysis' in final_analysis,
-        'plagiarism_type': type(final_analysis.get('plagiarism_analysis')).__name__
-    })
-    
-    return final_analysis
-
+        final_analysis = {
+            **repo_data,
+            'ai_analysis': json.loads(ai_analysis),
+            'analysis_date': datetime.now(timezone.utc).isoformat()
+        }
+        
+        print("Final Analysis Structure:", {
+            'keys': list(final_analysis.keys()),
+            'has_plagiarism': 'plagiarism_analysis' in final_analysis,
+            'plagiarism_type': type(final_analysis.get('plagiarism_analysis')).__name__
+        })
+        
+        return final_analysis
+    except Exception as e:
+        print(e)
 
 @app.route('/')
 def index():
@@ -363,12 +369,13 @@ def analyze():
         
         print(f"Starting new analysis for {repo_url}")
         analysis = analyze_repository(repo_url)
-        
+
         if not analysis:
             return jsonify({'error': 'Analysis failed'}), 500
             
-        print("Analysis complete. Saving to database...")
-        
+        if analysis == 'Invalid':
+            return jsonify({'error': 'Invalid GitHub Repository'}), 500
+                
         response_data = {
             'analysis': analysis,
             'cached': False,
