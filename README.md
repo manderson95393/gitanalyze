@@ -3,7 +3,7 @@
 An elegant tool for analyzing GitHub repositories to assess their quality, maintainability, and community health.
 
 # 📋 Overview
-The GitHub Repository Analyzer -- ChainGuard -- is a powerful tool designed to help developers and teams evaluate GitHub repositories through comprehensive analysis. It provides insights into code quality, maintenance patterns, community engagement, and overall project health.
+The GitHub Repository Analyzer --**<ins>ChainGuard</ins>**-- is a powerful tool designed to help developers and teams evaluate GitHub repositories through comprehensive analysis. It provides insights into code quality, maintenance patterns, community engagement, and overall project health.
 ✨ Key Features
 
 - AI-powered: Utilizes state-of-the-art LLM tools
