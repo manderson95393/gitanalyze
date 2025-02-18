@@ -1,40 +1,31 @@
-# Frontend Build Stage
-FROM node:18 AS frontend-build
+# Use node to build the frontend
+FROM node:18 AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
-COPY frontend/ .
-# Install the missing babel plugin
-RUN npm install --save-dev @babel/plugin-proposal-private-property-in-object
+RUN npm install
+COPY frontend/ ./
 RUN npm run build
 
-# Backend Stage
-FROM python:3.11
+# Use python for the backend and serving
+FROM python:3.10-slim
 WORKDIR /app
 
-# Copy backend requirements and install dependencies
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy frontend build from previous stage
+COPY --from=frontend-builder /app/frontend/build ./frontend/build
+
+# Install python dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Copy backend code
-COPY backend/ ./
-
-# Create directory structure for frontend build
-RUN mkdir -p frontend/build
-COPY --from=frontend-build /app/frontend/build ./frontend/build
+COPY . .
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
 ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
 
-EXPOSE 8000
+# Expose the port
+EXPOSE 8080
 
-# Debug: Print environment and directory structure
-CMD ["sh", "-c", "\
-    echo 'Current directory:' && \
-    pwd && \
-    echo 'Directory contents:' && \
-    ls -R && \
-    echo 'Starting Gunicorn...' && \
-    gunicorn --bind 0.0.0.0:$PORT app:app"]
+# Start the application
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
