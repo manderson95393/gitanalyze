@@ -2,8 +2,10 @@
 builder = "nixpacks"
 nixPkgs = ["nodejs_18", "python311", "pip"]
 buildCommand = """
-  cd frontend && npm install && npm run build &&
-  cd ../backend && pip install -r requirements.txt
+  echo "Installing Frontend Dependencies" &&
+  cd frontend && npm ci && npm run build &&
+  echo "Installing Backend Dependencies" &&
+  cd ../backend && pip install --no-cache-dir -r requirements.txt
 """
 
 [deploy]
