@@ -457,7 +457,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
       <nav className="bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <a href="/" className="text-xl font-bold text-white">ChainGuard</a>
+            <a href= "/" className="text-3xl font-bold text-white">ChainGuard</a>
             <div className="bg-green-500/10 p-2 rounded-lg">
               <ShieldCheck className="w-6 h-6 text-green-400" />
             </div>
