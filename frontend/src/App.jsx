@@ -373,7 +373,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
             <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 hover:border-green-500/50 transition-colors duration-300">
               <div className="flex items-center justify-between">
                 <Users className="w-5 h-5 text-green-400" />
-                <span className="text-2xl font-bold text-white">{analysis.contributors.length}</span>
+                <span className="text-2xl font-bold text-white">{analysis.contributors}</span>
               </div>
               <div className="text-sm text-gray-400 mt-1">Contributors</div>
             </div>
@@ -500,7 +500,7 @@ export default function App() {
     setError(null);
     
     try {
-      const res = await fetch('http://localhost:5000/api/analyze', {
+      const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
