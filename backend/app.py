@@ -1,6 +1,6 @@
 import traceback
 from flask import redirect, url_for, session
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_dance.contrib.github import make_github_blueprint, github
 from flask_sqlalchemy import SQLAlchemy
@@ -18,15 +18,14 @@ from bs4 import BeautifulSoup
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend/build', static_url_path='/')
 app.config.update(
     SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_TYPE='filesystem'
 )
-CORS(app, origins=["http://localhost:3000"],
-     supports_credentials=True)
+
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 def get_repo_hash(repo_url):
@@ -69,9 +68,8 @@ def analyze_code_with_ai(repo_info, files_content, url):
     ]
     random_index = random.randint(0, 11)
     random_personality = personalities[random_index]
-    print(random_personality)
 
-    s1 = "Throughout this analysis I want you take on the persona of {random_personality} and use some emojis. With this persona in mind, you are also crypto coin trader."
+    s1 = f"Throughout this analysis I want you take on the persona of {random_personality} and use some emojis. With this persona in mind, you are also crypto coin trader."
     s2 = "Throughout this analysis I want you to be serious but fun and use emojis. You are a crypto coin trader who is slightly humorous."
 
     analysis_prompt = f"""
@@ -125,9 +123,7 @@ def analyze_code_with_ai(repo_info, files_content, url):
         
         ai_response = response.json()
         analysis_text = ai_response['choices'][0]['message']['content']
-        result = "\n".join(analysis_text[1:])
         
-        print(analysis_text)
         if "Beware" in analysis_text[:25]:
             grade = "Beware"
         elif "Caution" in analysis_text[:25]:
@@ -375,9 +371,8 @@ def analyze_repository(repo_url):
             'Accept': 'application/vnd.github.v3+json'
         }
 
+        # URL Validation
         valid = is_public_github_repo(repo_url, headers)
-        print(valid)
-        print(valid[1])
         if not valid[0]:
             return "Invalid"
         
@@ -388,16 +383,13 @@ def analyze_repository(repo_url):
         owner, repo = parts[-2], parts[-1]
 
         base_url = f'https://api.github.com/repos/{owner}/{repo}'
-        
-        print("Analyzing repository:", repo_url)
-        
+                
         repo_response = requests.get(base_url, headers=headers)
         repo_info = repo_response.json()
 
         # Web scrape repo -----------------
         # Scrape basic repository information
         scraped_info = scrape_repository_info(repo_url)
-
 
         languages = requests.get(f'{base_url}/languages', headers=headers).json()
         commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
@@ -434,10 +426,7 @@ def analyze_repository(repo_url):
                                 for c in commits[:5]]
             },
             'languages': languages,
-            'contributors': [{'login': f'contributor_{i}', 
-                          'contributions': 1} 
-                          for i in range(scraped_info['contributors_count'])]
-
+            'contributors': scraped_info['contributors_count']
         }
 
         ai_analysis = analyze_code_with_ai({
@@ -453,9 +442,7 @@ def analyze_repository(repo_url):
             'last_updated': repo_info['updated_at'],
             'open_issues_count': repo_info['open_issues_count']
         }, files_content, url = repo_url )
-            
-        print("AI Analysis Results:", ai_analysis)
-        
+                    
         final_analysis = {
             **repo_data,
             'ai_analysis': json.loads(ai_analysis),
@@ -473,10 +460,16 @@ def analyze_repository(repo_url):
         print(e)
 
 @app.route('/')
-def index():
-    if not github.authorized:
-        return redirect(url_for('github.login'))
-    return redirect('http://localhost:3000')
+def serve():
+    """Serve React App"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Handle React routing by returning index.html for all non-API routes
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith('/api/'):
+        return jsonify(error=str(e)), 404
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
@@ -502,9 +495,7 @@ def analyze():
         repo_url = request.json.get('repo_url')
         if not repo_url:
             return jsonify({'error': 'Repository URL is required'}), 400
-        
-        
-        print(f"Starting new analysis for {repo_url}")
+                
         analysis = analyze_repository(repo_url)
 
         if not analysis:
@@ -520,7 +511,6 @@ def analyze():
             'analyzed_at': datetime.now(timezone.utc).isoformat()
         }
         
-        print("Sending response to frontend")
         return jsonify(response_data)
         
     except Exception as e:
