@@ -131,51 +131,53 @@ const CyberButton = ({ children, onClick, disabled = false }) => {
   );
 };
 
+
 const MatrixGrade = ({ grade }) => {
   // Calculate color and icon based on grade
   const getGradeConfig = (grade) => {
     const configs = {
       Excellent: { 
-        color: 'green-400', 
-        icon: ShieldCheck,  // Changed to ShieldCheck for positive indication
-        message: 'Strong Security',  // Changed to match the GOOD grade
-        riskLevel: 'Low',  // Changed to be consistent with GOOD grade
-        securityScore: 'Strong'  // Changed to be consistent
+        colorClass: 'text-green-400 border-green-400 bg-green-400', 
+        icon: ShieldCheck,  
+        message: 'Strong Security', 
+        riskLevel: 'Low',  
+        securityScore: 'Strong'  
       },
       Good: { 
-        color: 'green-400', 
-        icon: ShieldCheck,  // Changed to ShieldCheck for positive indication
-        message: 'Strong Security',  // Changed to match the GOOD grade
-        riskLevel: 'Low',  // Changed to be consistent with GOOD grade
-        securityScore: 'Strong'  // Changed to be consistent
+        colorClass: 'text-green-400 border-green-400 bg-green-400', 
+        icon: ShieldCheck,  
+        message: 'Strong Security', 
+        riskLevel: 'Low',  
+        securityScore: 'Strong' 
       },
       Average: { 
-        color: 'yellow-400',
+        colorClass: 'text-yellow-400 border-yellow-400 bg-yellow-400',
         icon: AlertCircle, 
         message: 'Moderate Risk',
         riskLevel: 'Medium',
         securityScore: 'Moderate'
       },
       Caution: { 
-        color: 'orange-400',
+        colorClass: 'text-orange-400 border-orange-400 bg-orange-400',
         icon: AlertCircle, 
         message: 'High Risk',
         riskLevel: 'High',
         securityScore: 'Poor'
       },
       Beware: { 
-        color: 'red-400',
+        colorClass: 'text-red-400 border-red-400 bg-red-400',
         icon: XCircle, 
         message: 'Critical Risk',
         riskLevel: 'Critical',
         securityScore: 'Critical'
       }
     };
-    return configs[grade] || configs.MODERATE;
+    return configs[grade] || configs.Average;
   };
 
   const config = getGradeConfig(grade);
   const IconComponent = config.icon;
+  const [textColor, borderColor, bgColor] = config.colorClass.split(' ');
 
   const containerAnim = {
     hidden: { opacity: 0, y: 20 },
@@ -209,7 +211,7 @@ const MatrixGrade = ({ grade }) => {
       animate="visible"
       variants={containerAnim}
     >
-      <div className={`relative bg-gray-900 rounded-2xl border border-${config.color} shadow-2xl overflow-hidden`}>
+      <div className={`relative bg-gray-900 rounded-2xl ${borderColor} border shadow-2xl overflow-hidden`}>
         {/* Hexagonal background pattern */}
         <div className="absolute inset-0 opacity-5">
           <svg width="100%" height="100%" className="absolute inset-0">
@@ -220,7 +222,7 @@ const MatrixGrade = ({ grade }) => {
               width="20" 
               height="20" 
               patternUnits="userSpaceOnUse"
-              className={`fill-${config.color}`}
+              className={textColor}
             >
               <path d="M10 1L19 5.5L19 14.5L10 19L1 14.5L1 5.5L10 1Z"/>
             </pattern>
@@ -236,12 +238,12 @@ const MatrixGrade = ({ grade }) => {
               className="inline-block mb-4"
               variants={pulseAnim}
             >
-              <IconComponent className={`w-16 h-16 text-${config.color}`} />
+              <IconComponent className={`w-16 h-16 ${textColor}`} />
             </motion.div>
             <h3 className="text-xl font-medium text-gray-200 mb-2">
               Repository Security Score
             </h3>
-            <p className={`text-lg text-${config.color}`}>
+            <p className={`text-lg ${textColor}`}>
               {config.message}
             </p>
           </div>
@@ -249,7 +251,7 @@ const MatrixGrade = ({ grade }) => {
           {/* Grade Display */}
           <div className="text-center">
             <motion.div 
-              className={`text-9xl font-bold text-${config.color} font-mono tracking-wider`}
+              className={`text-9xl font-bold ${textColor} font-mono tracking-wider`}
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
@@ -262,19 +264,19 @@ const MatrixGrade = ({ grade }) => {
           <div className="mt-8 grid grid-cols-3 gap-4 text-center">
             <div className="p-4 bg-gray-800 rounded-lg">
               <div className="text-sm text-gray-400">Overall Score</div>
-              <div className={`text-lg font-medium text-${config.color}`}>
+              <div className={`text-lg font-medium ${textColor}`}>
                 {grade}
               </div>
             </div>
             <div className="p-4 bg-gray-800 rounded-lg">
               <div className="text-sm text-gray-400">Security Score</div>
-              <div className={`text-lg font-medium text-${config.color}`}>
+              <div className={`text-lg font-medium ${textColor}`}>
                 {config.securityScore}
               </div>
             </div>
             <div className="p-4 bg-gray-800 rounded-lg">
               <div className="text-sm text-gray-400">Risk Level</div>
-              <div className={`text-lg font-medium text-${config.color}`}>
+              <div className={`text-lg font-medium ${textColor}`}>
                 {config.riskLevel}
               </div>
             </div>
@@ -283,7 +285,7 @@ const MatrixGrade = ({ grade }) => {
 
         {/* Glowing border effect */}
         <motion.div
-          className={`absolute inset-0 opacity-20 bg-${config.color}`}
+          className={`absolute inset-0 opacity-20 ${bgColor}`}
           animate={{
             opacity: [0.1, 0.3, 0.1],
           }}
