@@ -18,7 +18,7 @@ The analyzer evaluates repositories across three key dimensions:
         3. Overall engagement, activity, and community sentiment.
         
 # Score Interpretation
-**<u>RISK</u> is the likelihood that a crypto project is either a scam, poorly maintained, or could fail due to technical issues, which could result in investors losing their money.**
+**<ins>RISK</ins> is the likelihood that a crypto project is either a scam, poorly maintained, or could fail due to technical issues, which could result in investors losing their money.**
 - Beware -- HIGH risk level
 - Caution
 - Average -- AVERAGE risk level
