@@ -16,9 +16,6 @@ WORKDIR /app/backend
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Frontend Build to Backend (optional for serving static files)
-COPY --from=frontend-build /app/frontend/dist /app/backend/static
-
 COPY backend/ .
 
 # Set environment variables
