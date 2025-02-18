@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd frontend && npm install && npm run build"
+
+[deploy]
+startCommand = "cd backend && gunicorn app:app"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
