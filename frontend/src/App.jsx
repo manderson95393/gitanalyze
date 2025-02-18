@@ -4,6 +4,7 @@ import PlagiarismAnalysis from './PlagiarismAnalysis';
 import MatrixRainComponent, { GlowingCardComponent, GlowingCardComponent2, CyberButton, CyberInput, MatrixGrade } from './matrix-components';
 import { motion,useInView } from "framer-motion";
 import ReactMarkdown from "react-markdown"
+import LoadingScreen from './LoadingScreen';
 
 const features = [
   {
@@ -453,6 +454,7 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
   };
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black">
       <nav className="bg-gray-900 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -466,20 +468,6 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* {stats && (
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="bg-green-500/10 p-3 rounded-lg">
-                <BarChart2 className="w-6 h-6 text-green-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Analytics Dashboard</h3>
-                <p className="text-gray-400">Total repositories analyzed: {stats.total_analyses}</p>
-              </div>
-            </div>
-          </div>
-        )} */}
-
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
           <form onSubmit={handleAnalyze} className="flex space-x-4">
             <div className="flex-1">
@@ -518,7 +506,11 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
           </div>
         )}
 
-        {analysis && analysisInfo && renderAnalysis(analysis, analysisInfo)}
+        {loading ? (
+          <LoadingScreen />
+        ) : (
+          analysis && analysisInfo && renderAnalysis(analysis, analysisInfo)
+        )}
       </main>
     </div>
   );
