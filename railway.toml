@@ -1,15 +1,9 @@
 [build]
-builder = "nixpacks"
-nixPkgs = ["nodejs_18", "python311", "pip"]
-buildCommand = """
-  echo "Installing Frontend Dependencies" &&
-  cd frontend && npm ci && npm run build &&
-  echo "Installing Backend Dependencies" &&
-  cd ../backend && pip install --no-cache-dir -r requirements.txt
-"""
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "cd backend && gunicorn app:app"
+startCommand = "gunicorn --bind 0.0.0.0:$PORT app:app"
 healthcheckPath = "/"
-healthcheckTimeout = 100
-restartPolicyType = "on_failure"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
