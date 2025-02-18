@@ -56,9 +56,9 @@ const SectionWrapper = ({ children }) => {
   );
 };
 
-const Navbar = () => {
+const Navbar = ({ variant = 'dark' }) => {
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-black border-b border-gray-900 z-50">
+    <nav className={`${variant === 'dark' ? 'fixed top-0 left-0 right-0 bg-black border-b border-gray-900 p-6 z-50' : 'bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl z-50'}`}>
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Left side - Logo */}
         <a href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -108,28 +108,6 @@ const formatDate = (dateString) => {
   });
 };
 
-const ScoreBadge = ({ score, numericScore }) => {
-  const scoreConfig = {
-    'Good': { color: 'bg-green-100 text-green-800', icon: Check },
-    'Average': { color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },
-    'Bad': { color: 'bg-red-100 text-red-800', icon: X }
-  };
-
-  const config = scoreConfig[score] || scoreConfig['Average'];
-  const Icon = config.icon;
-
-  return (
-    <div className="flex items-center space-x-4">
-      <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${config.color}`}>
-        <Icon className="w-4 h-4" />
-        <span className="font-medium">{score}</span>
-      </div>
-      <div className="text-lg font-semibold">
-        {numericScore}/5
-      </div>
-    </div>
-  );
-};
 
 const AIAnalysis = ({ aiAnalysis }) => {
   if (!aiAnalysis) return null;
@@ -235,7 +213,7 @@ const LandingPage = ({ onGetStarted }) => {
   return (
     <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
-      <Navbar />
+      <Navbar variant="dark" />
       <div className="relative z-10 space-y-12 py-16 pt-32">
       <section className="py-12 flex items-center justify-center">
         <GlowingCardComponent className="text-center p-4 max-w-6xl mx-4">
@@ -456,18 +434,9 @@ const MainContent = ({ user, stats, loading, repoUrl, setRepoUrl, handleAnalyze,
   return (
     
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black">
-      <nav className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <a href= "/" className="text-3xl font-bold text-white">ChainGuard</a>
-            <div className="bg-green-500/10 p-2 rounded-lg">
-              <ShieldCheck className="w-6 h-6 text-green-400" />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar variant="light" />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 pt-32">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-xl border border-green-500/20 mb-8">
           <form onSubmit={handleAnalyze} className="flex space-x-4">
             <div className="flex-1">
