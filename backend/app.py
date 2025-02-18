@@ -13,7 +13,7 @@ import hashlib
 from dotenv import load_dotenv
 import base64
 import random
-
+from bs4 import BeautifulSoup
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 load_dotenv()
@@ -52,8 +52,13 @@ def analyze_code_with_ai(repo_info, files_content, url):
     random_index = random.randint(0, 11)
     random_personality = personalities[random_index]
     print(random_personality)
+
+    s1 = "Throughout this analysis I want you take on the persona of {random_personality} and use some emojis. With this persona in mind, you are also crypto coin trader."
+    s2 = "Throughout this analysis I want you to be serious but fun and use emojis. You are a crypto coin trader who is slightly humorous."
+
     analysis_prompt = f"""
-        Throughout this analysis I want you take on the persona of {random_personality} and use some emojis. With this persona in mind, you are also crypto coin trader.
+        {s2}
+        
         We together are seeking out coins with software projects.
         There are a lot of scam projects that steal code or do not work. 
         Please look for plagiarized code, poor code practices such as exposed API keys (Keys that are not empty or placeholders), and the history of the repository.
@@ -234,6 +239,112 @@ def is_public_github_repo(repo_url, headers):
     except Exception as e:
         return False, f"Error: {str(e)}"
     
+
+def parse_number(text):
+    """Parse numbers that might include k, m suffixes"""
+    if not text:
+        return 0
+        
+    # Clean up the text
+    text = text.strip().lower()
+    
+    # Handle k/m suffixes
+    multiplier = 1
+    if 'k' in text:
+        multiplier = 1000
+        text = text.replace('k', '')
+    elif 'm' in text:
+        multiplier = 1000000
+        text = text.replace('m', '')
+        
+    try:
+        # Extract numeric part
+        number = float(''.join(c for c in text if c.isdigit() or c == '.'))
+        return int(number * multiplier)
+    except (ValueError, TypeError):
+        return 0
+    
+
+def scrape_repository_info(repo_url):
+    """Scrape basic repository information from GitHub webpage."""
+    try:
+        response = requests.get(repo_url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Get star count - Updated selector
+        stars_element = soup.select_one('a[href$="stargazers"] span.Counter')
+        stars = parse_number(stars_element.text.strip() if stars_element else '0')
+        
+        # Get fork count - Updated selector
+        forks_element = soup.select_one('a[href$="forks"] span.Counter')
+        forks = parse_number(forks_element.text.strip() if forks_element else '0')
+        
+        # Get languages - Updated selector and parsing
+        languages = {}
+        lang_stats = soup.select('div[data-test-selector="languages-stats"] span.color-fg-default')
+        for lang_elem in lang_stats:
+            lang_name = lang_elem.text.strip()
+            # Find the percentage in the next sibling
+            percent_elem = lang_elem.find_next_sibling('span', class_='color-fg-muted')
+            if percent_elem:
+                percent_text = percent_elem.text.strip().rstrip('%')
+                try:
+                    lang_percent = float(percent_text)
+                    languages[lang_name] = lang_percent
+                except ValueError:
+                    continue
+        
+        # Get creation date and last update - Updated selector
+        dates = soup.select('relative-time')
+        created_at = None
+        last_updated = None
+        
+        if dates:
+            try:
+                # Look for creation date in page text
+                creation_element = soup.find('span', string=lambda text: text and 'Created' in text)
+                if creation_element:
+                    created_time = creation_element.find_next('relative-time')
+                    if created_time:
+                        created_at = created_time.get('datetime')
+                
+                # Last updated is typically the first relative-time element
+                last_updated = dates[0].get('datetime')
+            except Exception as e:
+                print(f"Error parsing dates: {e}")
+        
+        # Fallback dates if not found
+        if not created_at:
+            created_at = datetime.now(timezone.utc).isoformat()
+        if not last_updated:
+            last_updated = datetime.now(timezone.utc).isoformat()
+        
+        # Get contributors count - Updated selector
+        contributors_element = soup.select_one('a[href$="contributors"] span.Counter')
+        contributors_count = parse_number(contributors_element.text.strip() if contributors_element else '0')
+        
+        return {
+            'stars': stars,
+            'forks': forks,
+            'languages': languages,
+            'created_at': created_at,
+            'last_updated': last_updated,
+            'contributors_count': contributors_count
+        }
+    except Exception as e:
+        print(f"Error scraping repository: {e}")
+        # Return default values if scraping fails
+        return {
+            'stars': 0,
+            'forks': 0,
+            'languages': {},
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'last_updated': datetime.now(timezone.utc).isoformat(),
+            'contributors_count': 0
+        }
+    
+
 def analyze_repository(repo_url):
     try:
         # Get the GitHub token from an environment variable
@@ -265,6 +376,11 @@ def analyze_repository(repo_url):
         repo_response = requests.get(base_url, headers=headers)
         repo_info = repo_response.json()
         
+        # In-progress scrape repo -----------------
+        # Scrape basic repository information
+        scraped_info = scrape_repository_info(repo_url)
+
+
         languages = requests.get(f'{base_url}/languages', headers=headers).json()
         commits = requests.get(f'{base_url}/commits', params={'per_page': 30}, headers=headers).json()
         contributors = requests.get(f'{base_url}/contributors', params={'per_page': 10}, headers=headers).json()
@@ -300,9 +416,10 @@ def analyze_repository(repo_url):
                                 for c in commits[:5]]
             },
             'languages': languages,
-            'contributors': [{'login': c['login'], 
-                            'contributions': c['contributions']} 
-                            for c in contributors]
+            'contributors': [{'login': f'contributor_{i}', 
+                          'contributions': 1} 
+                          for i in range(scraped_info['contributors_count'])]
+
         }
 
         ai_analysis = analyze_code_with_ai({
