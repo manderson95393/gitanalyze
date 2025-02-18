@@ -1,4 +1,4 @@
-# 🔍 ChainGuard
+# 🛡️ ChainGuard
 
 An elegant tool for analyzing GitHub repositories to assess their quality, maintainability, and community health.
 
