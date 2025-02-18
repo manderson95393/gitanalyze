@@ -10,7 +10,10 @@ from dotenv import load_dotenv
 import base64
 import random
 from bs4 import BeautifulSoup
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 load_dotenv()
 
@@ -514,6 +517,11 @@ def analyze():
         traceback.print_exc()  # Print full stack trace
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+    
 
 if __name__ == '__main__':
     # deployment setup
