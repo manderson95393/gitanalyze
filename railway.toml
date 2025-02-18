@@ -1,7 +1,10 @@
 [build]
 builder = "nixpacks"
-nixPkgs = ["nodejs_18"]
-buildCommand = "cd frontend && npm install && npm run build"
+nixPkgs = ["nodejs_18", "python311", "pip"]
+buildCommand = """
+  cd frontend && npm install && npm run build &&
+  cd ../backend && pip install -r requirements.txt
+"""
 
 [deploy]
 startCommand = "cd backend && gunicorn app:app"
