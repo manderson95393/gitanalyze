@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - GITHUB_PAT=${GITHUB_PAT}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+    volumes:
+      - .:/app
