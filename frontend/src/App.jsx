@@ -209,13 +209,14 @@ const AIAnalysis = ({ aiAnalysis }) => {
   );
 };
 
+
 const LandingPage = ({ onGetStarted }) => {
   return (
     <div className="bg-black relative overflow-hidden">
       <MatrixRainComponent />
       <Navbar variant="dark" />
-      <div className="relative z-10 space-y-8 py-16 pt-32">
-        <section className="py-8 flex items-center justify-center">
+      <div className="relative z-10 space-y-24 py-24 pt-48">
+        <section className="flex items-center justify-center">
           <GlowingCardComponent className="text-center p-4 max-w-4xl mx-4">
             <div className="space-y-8">
               <div className="flex items-baseline justify-center space-x-6">
@@ -248,7 +249,7 @@ const LandingPage = ({ onGetStarted }) => {
 
         {/* Video Tutorial Section */}
         <SectionWrapper>
-          <section className="py-8 flex items-center justify-center px-4">
+          <section className="flex items-center justify-center px-4">
             <GlowingCardComponent className="max-w-4xl w-full p-8">
               <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
                 <video
@@ -273,7 +274,7 @@ const LandingPage = ({ onGetStarted }) => {
         </SectionWrapper>
 
         <SectionWrapper>
-          <section className="py-8 flex items-center justify-center px-4">
+          <section className="flex items-center justify-center px-4">
             <div className="max-w-4xl w-full">
               <h2 className="text-4xl font-bold text-green-400 text-center mb-8">
                 Powerful Features
